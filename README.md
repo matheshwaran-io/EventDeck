@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EventDeck — University Event Management System
 
-## Getting Started
+A mobile-first platform for discovering, booking and running university events: configurable ticket tiers, multi-ticket bookings with transactional inventory, Razorpay **Test Mode** payments with server-side verification, organizer verification, QR tickets (PDF), phone-camera check-in, event cancellation with refund tracking, in-app realtime notifications, CSV reports and a full audit trail.
 
-First, run the development server:
+> Payments run in Razorpay **Test Mode only**. Live keys (`rzp_live_…`) are refused by the app and no real money ever moves.
+
+---
+
+## Contents
+
+1. [Features](#features)
+2. [Stack](#stack)
+3. [Architecture & security model](#architecture--security-model)
+4. [Local development](#local-development)
+5. [Demo accounts](#demo-accounts)
+6. [Razorpay Test Mode](#razorpay-test-mode)
+7. [Supabase (cloud) setup](#supabase-cloud-setup)
+8. [Deploying to Vercel](#deploying-to-vercel)
+9. [Provisioning the first administrator](#provisioning-the-first-administrator)
+10. [Testing](#testing)
+11. [Known limitations](#known-limitations)
+
+---
+
+## Features
+
+| Area | What works |
+| --- | --- |
+| **Discovery** | Landing page, category browsing, PostgreSQL full-text search (prefix matching, ranked) with date / venue / availability / free-entry filters, pagination, public vs **unlisted** (direct-link) events. |
+| **Booking** | Event-specific tiers (Silver / Gold / VIP … any names), multi-tier multi-ticket bookings, per-event per-person limits, eligibility by participant category, registration deadline enforced server-side, per-attendee names, idempotent submissions. |
+| **Inventory safety** | Atomic `UPDATE … WHERE allocated + n <= capacity`, DB check constraints, sorted multi-tier locking, 10-minute holds released exactly once (lazy expiry on every relevant read + daily cron safety net). |
+| **Payments** | Server-created Razorpay orders (server-priced), Checkout signature verification, webhook signature verification + event-id dedupe, idempotent confirmation, retry after failure, late-payment recovery or exception parking, duplicate-payment detection. A local **payment simulator** drives the same code path when keys are absent (never on Vercel production). |
+| **Verification** | Paid and free bookings both need organizer approval before tickets become valid. Complimentary pass requests (₹0) with an eligibility reason. Rejection with a note; rejected *paid* bookings are routed to the admin exception queue. |
+| **Tickets** | One ticket per attendee, unique ticket number, 192-bit random QR token (no personal data, no status in the QR). Access-controlled PDF download (cached in a private Storage bucket). |
+| **Check-in** | `html5-qrcode` scanner with permission / insecure-context / no-camera handling, manual ticket-number fallback, server validation (event match, approval, check-in window), atomic duplicate prevention across devices, live session log. |
+| **Cancellation & refunds** | Organizer requests → admin approves → event cancelled, new bookings stop, tickets invalidated, attendees notified, refunds queued for paid bookings; refunds processed via Razorpay Test Mode (or simulator), status tracked to participants; webhook updates. |
+| **Dashboards** | Participant (upcoming/past, payment, verification, ticket validity, refunds), Organizer (metrics, verification queue, tiers inventory, scanner, attendance, activity log), Admin (metrics, 14-day sales chart, people & organizer applications, event oversight, cancellations, refunds, payment exceptions, reports, audit log). |
+| **Notifications** | In-app notifications for every lifecycle event, Supabase Realtime (RLS-filtered) with polling + focus refresh fallback; live booking-page refresh. |
+| **Reports** | CSV exports (bookings, attendance, payments, refunds, events, users, audit) from authorised server queries, formula-injection safe, every export audited. |
+
+## Stack
+
+Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind CSS v4 · shadcn/ui (Base UI) · lucide-react · Supabase (Postgres, Auth, Storage, Realtime) · Drizzle ORM + Drizzle Kit · React Hook Form + Zod · Razorpay Checkout (Test Mode) · pdf-lib + qrcode · html5-qrcode · sharp · Vitest · Playwright.
+
+## Architecture & security model
+
+```
+Browser ──(Supabase Auth session cookie)──▶ Next.js server (proxy.ts refreshes session)
+   │                                           │
+   │  anon key + user JWT (read-only, RLS)     │  privileged Postgres connection (Drizzle)
+   ▼                                           ▼
+Supabase Realtime / PostgREST            src/lib/server/*  ── all writes, transactions, role checks
+```
+
+* **All writes** go through server actions / route handlers → `src/lib/server/*` services, which re-validate input (Zod), check role **and ownership**, and run in Postgres transactions.
+* **Row Level Security** is enabled on every table (`drizzle/0001_security_rls_realtime.sql`). `anon`/`authenticated` have **no** insert/update/delete privileges at all; SELECT policies expose only a user's own rows (organizers: rows for their events; admins: everything). Drafts and unlisted events are never listable through the API.
+* **Roles**: `participant` (default for every signup — a DB trigger ignores any role in signup metadata), `organizer` (granted by an admin), `admin` (provisioned only from the CLI). Participant *category* (student, faculty, guest…) is profile data, not a role.
+* **Status model** — four independent fields with explicit transitions (`src/lib/domain/transitions.ts`, enforced by compare-and-set updates):
+
+  | Field | Values |
+  | --- | --- |
+  | `bookings.status` (lifecycle + verification) | `awaiting_payment → pending_verification → approved`; `rejected`, `cancelled`, `expired`, `event_cancelled`, `payment_exception` |
+  | `bookings.payment_status` | `not_required`, `pending`, `paid`, `failed`, `expired` |
+  | `tickets.status` | `valid`, `invalidated` (+ check-in recorded in `check_ins`, unique per ticket) |
+  | `bookings.refund_status` / `refunds.status` | `not_applicable`, `pending`, `processed`, `failed` |
+
+  A ticket is valid only when the booking is `approved`, payment is `paid` or `not_required`, and the event isn't cancelled — checked again at PDF download and at every scan.
+* **Late payments**: if a verified payment arrives after a hold expired or was cancelled, the server tries to re-allocate the same seats in a savepoint. If seats are gone the booking becomes `payment_exception` (payment kept, admins notified) — a successful payment is never discarded and never silently turned into a ticket.
+* **Secrets** (service-role key, DB URL, Razorpay secret, webhook secret) are server-only env vars. Audit-log details pass through a redaction filter; card data is never seen by the app.
+
+## Local development
+
+**Prerequisites:** Node.js 24+, npm, Docker Desktop (for the local Supabase stack).
+
+```bash
+npm install
+```
+
+Start Supabase locally (Postgres, Auth, Storage, Realtime, Studio):
+
+```bash
+npm run supabase:start
+```
+
+Create `.env.local` from `.env.example`, filling the Supabase values printed by `npx supabase status -o env` (`API_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `DB_URL`). Leave the Razorpay keys blank and set `ALLOW_MOCK_PAYMENTS=true` to use the payment simulator, and choose a `SEED_DEMO_PASSWORD`.
+
+Apply migrations and load demo data:
+
+```bash
+npm run db:migrate
+```
+
+```bash
+npm run db:seed
+```
+
+Run the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Supabase Studio is at http://127.0.0.1:54323 and the local mail catcher at http://127.0.0.1:54324.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> Camera access requires a secure context: `localhost` works; on a phone use the HTTPS Vercel deployment (or an HTTPS tunnel).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Demo accounts
 
-## Learn More
+`npm run db:seed` creates these accounts (password = your `SEED_DEMO_PASSWORD`):
 
-To learn more about Next.js, take a look at the following resources:
+| Email | Role | Notes |
+| --- | --- | --- |
+| `admin@eventdeck.test` | Admin | Pending cancellation request waiting |
+| `organizer@eventdeck.test` | Organizer | HackNorth, ML Workshop, Research Day, Orientation Mixer (check-in open now), unlisted + draft events |
+| `cultural@eventdeck.test` | Organizer | Raag & Rhythm (Silver/Gold/Diamond), Football Cup, Film Club |
+| `participant@eventdeck.test` | Participant | Approved paid + free tickets |
+| `guest@eventdeck.test` | Participant (external student) | Paid booking awaiting verification, pass request |
+| `aditi@eventdeck.test` | Participant | Hold awaiting payment, paid booking to verify |
+| `applicant@eventdeck.test` | Participant | Use to try the organizer application flow |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Razorpay Test Mode
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a Razorpay account and switch the dashboard to **Test Mode**.
+2. **Settings → API Keys → Generate Test Key** → set `RAZORPAY_KEY_ID`, `NEXT_PUBLIC_RAZORPAY_KEY_ID` (both `rzp_test_…`) and `RAZORPAY_KEY_SECRET`.
+3. **Settings → Webhooks → Add** `https://<your-domain>/api/webhooks/razorpay` with a secret (→ `RAZORPAY_WEBHOOK_SECRET`) and the events `payment.captured`, `order.paid`, `payment.failed`, `refund.processed`, `refund.failed`.
+4. Set `ALLOW_MOCK_PAYMENTS=false`. Pay with Razorpay's published test cards / UPI test IDs.
 
-## Deploy on Vercel
+Refunds for cancelled events are submitted from **Admin → Refunds** to the Razorpay test API; their final state arrives via the `refund.*` webhooks.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Supabase (cloud) setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Create a project (free tier). Note the database password.
+2. **Authentication → Sign In / Providers → Email**: keep email/password enabled. For a quick demo you may turn **Confirm email** *off* (otherwise new users must click the emailed link, which lands on `/auth/confirm`). Authorization does not depend on this setting.
+3. **Authentication → URL Configuration**: set the Site URL to your deployed URL and add it to redirect URLs.
+4. **Project Settings → API**: copy the URL, anon key and service-role key. **Project Settings → Database → Connection string**: copy the *transaction pooler* URI for `DATABASE_URL` on Vercel.
+5. Run the migrations against the cloud database from your machine (a direct or session-pooler URI works best for DDL):
+
+   ```bash
+   DATABASE_URL="postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres" npm run db:migrate
+   ```
+
+   The migrations create all tables, constraints, indexes, the signup trigger, RLS policies, the Realtime publication for `notifications` + `bookings`, and the `posters` (public) / `tickets` (private) Storage buckets.
+6. Provision the first admin (below). Optionally seed demo data with `npm run db:seed` using the same env vars.
+
+Never run destructive resets (`supabase db reset`, dropping schemas) against a database that holds real data.
+
+## Deploying to Vercel
+
+1. Import the repository in Vercel (framework: Next.js).
+2. Add environment variables (Production + Preview): everything in `.env.example` **except** `SEED_DEMO_PASSWORD`, `ADMIN_*`. Set `NEXT_PUBLIC_APP_URL` to the deployment URL, `ALLOW_MOCK_PAYMENTS=false` (the simulator is force-disabled on production regardless).
+3. Deploy. `vercel.json` registers a daily cron (`/api/cron/expire-holds`, authorised with `CRON_SECRET`) as a safety net; holds also expire lazily whenever an event, booking or dashboard is read.
+4. Point the Razorpay webhook at `https://<domain>/api/webhooks/razorpay`.
+5. Smoke test: sign up, book, pay with a test card, approve as organizer, download the PDF, scan it from a phone over HTTPS.
+
+## Provisioning the first administrator
+
+Admin rights can't be obtained through the web app. From a trusted machine with the production env vars loaded:
+
+```bash
+ADMIN_EMAIL=you@university.edu ADMIN_NAME="Your Name" npm run admin:create
+```
+
+If the account doesn't exist it is created (email pre-confirmed). Without `ADMIN_PASSWORD`, a strong random password is generated and printed **once** to your terminal — store it in a password manager. Running it for an existing account just promotes it.
+
+## Testing
+
+| Command | Covers |
+| --- | --- |
+| `npm run lint` | ESLint (Next.js core-web-vitals + TypeScript) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test:unit` | State machine, server pricing, QR tokens & scan parsing, CSV formula-injection guard, IST time handling, Zod schemas, Razorpay checkout/webhook signatures, live-key / production simulator guards, poster magic-byte sniffing |
+| `npm run test:integration` | Against the local Supabase Postgres: 20 concurrent buyers for 5 seats (no oversell), idempotent submissions, limits / deadlines / eligibility, ten-minute expiry releasing once under concurrent sweeps, participant cancellation, checkout+webhook race, failure → retry, late-payment recovery vs. exception, organizer authorization, single ticket issuance, complimentary passes, check-in duplicates / wrong event / window, cancellation → invalidation → refunds, payment after cancellation → refund queued, webhook route (bad signature, dedupe) |
+| `npm run test:e2e` | Playwright (desktop + Pixel 7): discovery & search, unlisted/draft visibility, anonymous & role-based access (pages + APIs), signup → participant only, organizer application → admin approval, paid multi-ticket booking with decline + retry → approval → QR + PDF (and PDF denied to others), free registration rejection, hold cancellation releasing seats, event create/publish/edit/unpublish, scanner check-in + duplicate + invalid, admin cancellation → refund processing → audit + CSV, mobile layouts without horizontal scroll |
+
+Integration and E2E tests need the local Supabase stack running and `.env.local` configured; E2E also needs seeded demo accounts (`npm run db:seed`) and installs Chromium once with `npx playwright install chromium`.
+
+## Known limitations
+
+* **Rate limiting** relies on Supabase Auth's built-in limits plus request-size/pagination caps; there is no distributed per-IP rate limiter (no paid infrastructure by design).
+* **Refunds** are only for officially cancelled events; individual refunds for rejected paid bookings are handled off-app and recorded via **Admin → Exceptions → Mark resolved**.
+* **Email** notifications are out of scope (in-app + realtime only). Supabase's own auth emails (confirmation) still work if enabled.
+* **Vercel Hobby cron** runs at most once a day; correctness doesn't depend on it because expiry is enforced lazily on every relevant read.
+* Free-tier quotas (Supabase database size/egress, Realtime connections, Vercel function time) apply — check the providers' current terms before an event with large attendance.
