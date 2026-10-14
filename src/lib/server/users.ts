@@ -8,17 +8,59 @@ import { DomainError, pgErrorCode } from "./errors";
 
 export async function updateOwnProfile(
   user: Profile,
-  input: { fullName: string; phone: string; category: Profile["category"]; institution: string; department: string },
+  input: {
+    fullName: string;
+    phone?: string | null;
+    institutionType?: Profile["institutionType"];
+    campus?: Profile["campus"];
+    affiliation?: Profile["affiliation"];
+    institutionName?: string | null;
+    city?: string | null;
+    department?: string | null;
+    category?: Profile["category"];
+    institution?: string | null;
+  },
 ) {
   // Only descriptive fields — role and is_active are never accepted from the client.
+  const instType = input.institutionType ?? user.institutionType ?? "SRM";
+  const camp = instType === "SRM" ? (input.campus ?? user.campus ?? "KTR") : null;
+  const affil = input.affiliation ?? user.affiliation ?? "STUDENT";
+  const instName = instType === "SRM" ? "SRM University" : (input.institutionName ?? user.institutionName ?? null);
+  const city = instType === "EXTERNAL_INSTITUTION" ? (input.city ?? user.city ?? null) : null;
+  const dept = input.department ?? user.department ?? null;
+
+  let cat: Profile["category"] = input.category ?? user.category;
+  let instStr: string | null = input.institution ?? user.institution;
+
+  if (instType === "GUEST" || affil === "GUEST") {
+    cat = "guest";
+    instStr = "Guest";
+  } else if (instType === "SRM") {
+    if (affil === "STUDENT") cat = "host_student";
+    else if (affil === "FACULTY") cat = "faculty";
+    else if (affil === "STAFF") cat = "staff";
+    else if (affil === "ALUMNI") cat = "alumni";
+    instStr = dept ? `SRM ${camp} — ${dept}` : `SRM ${camp} Campus`;
+  } else {
+    if (affil === "FACULTY") cat = "faculty";
+    else if (affil === "STAFF") cat = "staff";
+    else cat = "external_student";
+    instStr = `${instName || "External Institution"}${city ? ` (${city})` : ""}`;
+  }
+
   const [row] = await db
     .update(profiles)
     .set({
       fullName: input.fullName,
       phone: input.phone || null,
-      category: input.category,
-      institution: input.institution || null,
-      department: input.department || null,
+      institutionType: instType,
+      campus: camp,
+      affiliation: affil,
+      institutionName: instName,
+      city: city,
+      department: dept,
+      category: cat,
+      institution: instStr,
       updatedAt: new Date(),
     })
     .where(eq(profiles.id, user.id))

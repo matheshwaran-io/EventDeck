@@ -139,4 +139,68 @@ describe("validation schemas", () => {
     expect(parsed.email).toBe("a@b.co");
     expect(signupSchema.safeParse({ fullName: "Asha", email: "a@b.co", password: "short", category: "guest" }).success).toBe(false);
   });
+  it("enforces SRM organization email for host students and allows personal email for external students", () => {
+    // Host student: requires @srmist.edu.in and department
+    expect(
+      signupSchema.safeParse({
+        fullName: "Karthik",
+        email: "karthik@gmail.com",
+        password: "Password123!",
+        category: "host_student",
+        institution: "CSE",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      signupSchema.safeParse({
+        fullName: "Karthik",
+        email: "ks1234@srmist.edu.in",
+        password: "Password123!",
+        category: "host_student",
+        institution: "CSE",
+      }).success,
+    ).toBe(true);
+
+    // External student: allows gmail/personal email, requires college name
+    expect(
+      signupSchema.safeParse({
+        fullName: "Rohan",
+        email: "rohan@gmail.com",
+        password: "Password123!",
+        category: "external_student",
+        institution: "",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      signupSchema.safeParse({
+        fullName: "Rohan",
+        email: "rohan@gmail.com",
+        password: "Password123!",
+        category: "external_student",
+        institution: "VIT Chennai",
+      }).success,
+    ).toBe(true);
+
+    // Faculty: allows SRM email without external institution, or gmail with college name
+    expect(
+      signupSchema.safeParse({
+        fullName: "Dr. Sharma",
+        email: "sharma@srmist.edu.in",
+        password: "Password123!",
+        category: "faculty",
+        institution: "Dept. of Computing",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      signupSchema.safeParse({
+        fullName: "Dr. Nair",
+        email: "nair@gmail.com",
+        password: "Password123!",
+        category: "faculty",
+        institution: "Anna University",
+      }).success,
+    ).toBe(true);
+  });
 });

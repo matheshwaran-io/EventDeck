@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   auditLogs,
@@ -9,6 +9,7 @@ import {
   checkIns,
   events,
   notifications,
+  organizerApplications,
   payments,
   profiles,
   refunds,
@@ -27,6 +28,42 @@ export async function makeUser(role: Profile["role"] = "participant", category: 
     values (${id}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', ${email}, '', now(),
             ${JSON.stringify({ full_name: `Test ${role} ${id.slice(0, 4)}`, category })}::jsonb, '{}'::jsonb, now(), now())`);
   if (role !== "participant") await db.update(profiles).set({ role }).where(eq(profiles.id, id));
+  created.users.push(id);
+  const [p] = await db.select().from(profiles).where(eq(profiles.id, id));
+  return p!;
+}
+
+export async function makeClassifiedUser(opts: {
+  fullName?: string;
+  email?: string;
+  role?: Profile["role"];
+  institutionType?: Profile["institutionType"];
+  campus?: Profile["campus"];
+  affiliation?: Profile["affiliation"];
+  institutionName?: string | null;
+  city?: string | null;
+  department?: string | null;
+  metadataOverrides?: Record<string, unknown>;
+} = {}) {
+  const id = randomUUID();
+  const email = opts.email ?? `test+${id.slice(0, 8)}@uems.test`;
+  const meta = {
+    full_name: opts.fullName ?? `Test User ${id.slice(0, 4)}`,
+    institution_type: opts.institutionType ?? "SRM",
+    campus: opts.campus ?? (opts.institutionType === "SRM" ? "KTR" : null),
+    affiliation: opts.affiliation ?? "STUDENT",
+    institution_name: opts.institutionName ?? null,
+    city: opts.city ?? null,
+    department: opts.department ?? null,
+    ...opts.metadataOverrides,
+  };
+  await db.execute(sql`
+    insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
+    values (${id}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', ${email}, '', now(),
+            ${JSON.stringify(meta)}::jsonb, '{}'::jsonb, now(), now())`);
+  if (opts.role && opts.role !== "participant") {
+    await db.update(profiles).set({ role: opts.role }).where(eq(profiles.id, id));
+  }
   created.users.push(id);
   const [p] = await db.select().from(profiles).where(eq(profiles.id, id));
   return p!;
@@ -110,6 +147,9 @@ export async function cleanup() {
     await db.delete(events).where(inArray(events.id, evIds));
   }
   if (userIds.length) {
+    await db.delete(organizerApplications).where(
+      or(inArray(organizerApplications.userId, userIds), inArray(organizerApplications.reviewedBy, userIds))!
+    );
     await db.delete(auditLogs).where(inArray(auditLogs.actorId, userIds));
     await db.delete(notifications).where(inArray(notifications.userId, userIds));
     await db.execute(sql`delete from auth.users where id in ${userIds}`);

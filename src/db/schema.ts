@@ -32,6 +32,10 @@ const updatedAt = () => ts("updated_at").notNull().defaultNow();
 
 export const userRole = pgEnum("user_role", ["participant", "organizer", "admin"]);
 
+export const institutionType = pgEnum("institution_type", ["SRM", "EXTERNAL_INSTITUTION", "GUEST"]);
+export const campusEnum = pgEnum("campus", ["KTR", "RAMAPURAM", "VADAPALANI", "OTHER_SRM"]);
+export const affiliationEnum = pgEnum("affiliation", ["STUDENT", "FACULTY", "STAFF", "ALUMNI", "GUEST"]);
+
 export const participantCategory = pgEnum("participant_category", [
   "host_student",
   "external_student",
@@ -113,6 +117,11 @@ export const profiles = pgTable(
     role: userRole("role").notNull().default("participant"),
     category: participantCategory("category").notNull().default("host_student"),
     institution: text("institution"),
+    institutionType: institutionType("institution_type").notNull().default("SRM"),
+    campus: campusEnum("campus"),
+    affiliation: affiliationEnum("affiliation").notNull().default("STUDENT"),
+    institutionName: text("institution_name"),
+    city: text("city"),
     department: text("department"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: createdAt(),
@@ -121,6 +130,9 @@ export const profiles = pgTable(
   (t) => [
     uniqueIndex("profiles_email_key").on(sql`lower(${t.email})`),
     index("profiles_role_idx").on(t.role),
+    index("profiles_institution_type_idx").on(t.institutionType),
+    index("profiles_campus_idx").on(t.campus),
+    index("profiles_affiliation_idx").on(t.affiliation),
     check("profiles_full_name_len", sql`char_length(${t.fullName}) between 1 and 120`),
   ],
 );
@@ -502,6 +514,18 @@ export type Payment = typeof payments.$inferSelect;
 export type Refund = typeof refunds.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Role = (typeof userRole.enumValues)[number];
+export type InstitutionType = (typeof institutionType.enumValues)[number];
+export type Campus = (typeof campusEnum.enumValues)[number];
+export type Affiliation = (typeof affiliationEnum.enumValues)[number];
+
+export const APPLICATION_ROLES = {
+  UNIVERSITY_ADMIN: "admin",
+  EVENT_ORGANIZER: "organizer",
+  PARTICIPANT: "participant",
+} as const;
+
+export type ApplicationRole = keyof typeof APPLICATION_ROLES;
+
 export type ParticipantCategory = (typeof participantCategory.enumValues)[number];
 export type EventCategory = (typeof eventCategory.enumValues)[number];
 export type BookingStatus = (typeof bookingStatus.enumValues)[number];

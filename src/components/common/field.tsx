@@ -6,6 +6,7 @@ export function Field({
   error,
   hint,
   required,
+  corner,
   children,
   className,
 }: {
@@ -14,16 +15,20 @@ export function Field({
   error?: string;
   hint?: React.ReactNode;
   required?: boolean;
+  corner?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
   const describedBy = error ? `${htmlFor}-error` : hint ? `${htmlFor}-hint` : undefined;
   return (
     <div className={cn("space-y-1.5", className)} data-invalid={Boolean(error) || undefined}>
-      <label htmlFor={htmlFor} className="flex items-center gap-1 text-[0.8125rem] font-medium">
-        {label}
-        {required && <span className="text-signal" aria-hidden>*</span>}
-      </label>
+      <div className="flex items-center justify-between">
+        <label htmlFor={htmlFor} className="flex items-center gap-1 text-[0.8125rem] font-medium">
+          {label}
+          {required && <span className="text-signal" aria-hidden>*</span>}
+        </label>
+        {corner}
+      </div>
       <div aria-describedby={describedBy}>{children}</div>
       {error ? (
         <p id={`${htmlFor}-error`} role="alert" className="text-xs font-medium text-destructive">

@@ -148,8 +148,18 @@ async function People({ adminId, q, role, page }: { adminId: string; q?: string;
                     </div>
                   </td>
                   <td className="text-muted-foreground">
-                    {participantLabel(p.category)}
-                    {p.institution && <span className="block text-xs">{p.institution}</span>}
+                    <p className="text-sm font-medium text-foreground">
+                      {p.institutionType === "SRM"
+                        ? `SRM ${p.campus ?? "KTR"}`
+                        : p.institutionType === "GUEST"
+                          ? "External Guest"
+                          : p.institutionName || p.institution || "Other College"}
+                    </p>
+                    <span className="block text-xs text-muted-foreground capitalize">
+                      {p.affiliation ? p.affiliation.toLowerCase() : participantLabel(p.category)}
+                      {p.city ? ` (${p.city})` : ""}
+                      {p.department ? ` · ${p.department}` : ""}
+                    </span>
                   </td>
                   <td className="text-right text-xs text-muted-foreground tabular">
                     {bookings} bookings{events ? ` · ${events} events` : ""}

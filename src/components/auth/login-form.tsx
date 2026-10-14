@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -37,7 +38,19 @@ export function LoginForm({ next }: { next?: string }) {
       <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
         <Input id="email" type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(formState.errors.email)} {...register("email")} />
       </Field>
-      <Field label="Password" htmlFor="password" error={formState.errors.password?.message}>
+      <Field
+        label="Password"
+        htmlFor="password"
+        error={formState.errors.password?.message}
+        corner={
+          <Link
+            href="/forgot-password"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors link-underline"
+          >
+            Forgot password?
+          </Link>
+        }
+      >
         <Input id="password" type="password" autoComplete="current-password" aria-invalid={Boolean(formState.errors.password)} {...register("password")} />
       </Field>
       <Button type="submit" size="lg" className="w-full" disabled={pending}>

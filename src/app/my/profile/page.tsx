@@ -23,9 +23,14 @@ export default async function ProfilePage() {
             defaults={{
               fullName: user.fullName,
               phone: user.phone ?? "",
+              institutionType: user.institutionType,
+              campus: user.campus,
+              affiliation: user.affiliation,
+              institutionName: user.institutionName ?? "",
+              city: user.city ?? "",
+              department: user.department ?? "",
               category: user.category,
               institution: user.institution ?? "",
-              department: user.department ?? "",
             }}
           />
         </section>

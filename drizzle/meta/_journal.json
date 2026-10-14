@@ -15,6 +15,13 @@
       "when": 1791922874750,
       "tag": "0001_security_rls_realtime",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791922880000,
+      "tag": "0002_institution_onboarding",
+      "breakpoints": true
     }
   ]
 }

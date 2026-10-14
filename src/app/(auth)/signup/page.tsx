@@ -12,7 +12,9 @@ export default async function SignupPage() {
   return (
     <>
       <h1 className="font-display text-[2.5rem] leading-none">Create your account</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Students, faculty, staff and guests are all welcome.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        SRM attendees across all campuses, other universities, and external guests are welcome.
+      </p>
       <SignupForm />
       <p className="mt-8 text-center text-sm text-muted-foreground">
         Already have an account?{" "}

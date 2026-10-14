@@ -153,7 +153,7 @@ describe("payments", () => {
     const o2 = await createOrderForBooking(u, b.id);
     expect(o2.orderId).not.toBe(o1.orderId);
     expect((await booking(b.id)).paymentStatus).toBe("pending");
-    await confirmPayment({ orderId: o2.orderId, paymentId: "pay_retry_ok", via: "mock" });
+    await confirmPayment({ orderId: o2.orderId, paymentId: `pay_retry_${key().slice(0, 8)}`, via: "mock" });
     expect((await booking(b.id)).status).toBe("pending_verification");
   });
 
@@ -166,7 +166,7 @@ describe("payments", () => {
     await forceExpire(b.id);
     await expireHolds({ bookingId: b.id });
     expect((await tier(tiers[0]!.id)).allocated).toBe(0);
-    const r = await confirmPayment({ orderId: order.orderId, paymentId: "pay_late_ok", via: "webhook" });
+    const r = await confirmPayment({ orderId: order.orderId, paymentId: `pay_late_ok_${key().slice(0, 8)}`, via: "webhook" });
     expect(r.outcome).toBe("recovered_late");
     expect((await booking(b.id)).status).toBe("pending_verification");
     expect((await tier(tiers[0]!.id)).allocated).toBe(1);
@@ -181,7 +181,7 @@ describe("payments", () => {
     const order = await createOrderForBooking(u, b.id);
     await cancelOwnBooking(u, b.id);
     await createBooking(rival, { eventId: event.id, lines: [{ tierId: tiers[0]!.id, quantity: 1 }], attendeeNames: [], idempotencyKey: key() });
-    const r = await confirmPayment({ orderId: order.orderId, paymentId: "pay_late_bad", via: "webhook" });
+    const r = await confirmPayment({ orderId: order.orderId, paymentId: `pay_late_bad_${key().slice(0, 8)}`, via: "webhook" });
     expect(r.outcome).toBe("exception");
     const after = await booking(b.id);
     expect(after.status).toBe("payment_exception");

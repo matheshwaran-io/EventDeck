@@ -72,13 +72,13 @@ type Seed = {
 };
 
 async function main() {
-  const admin = await ensureUser("admin@eventdeck.test", "Meera Iyer", "staff", "admin");
-  const org = await ensureUser("organizer@eventdeck.test", "Arjun Mehta", "faculty", "organizer", "Dept. of Computer Science");
-  const org2 = await ensureUser("cultural@eventdeck.test", "Kavya Rao", "host_student", "organizer", "Cultural Council");
-  const p1 = await ensureUser("participant@eventdeck.test", "Riya Sharma", "host_student", "participant", "Northfield University");
-  const p2 = await ensureUser("guest@eventdeck.test", "Daniel Thomas", "external_student", "participant", "St. Joseph's College");
-  const p3 = await ensureUser("aditi@eventdeck.test", "Aditi Nair", "host_student", "participant", "Northfield University");
-  await ensureUser("applicant@eventdeck.test", "Farhan Ali", "host_student", "participant", "Robotics Society");
+  const admin = await ensureUser("admin@eventdeck.test", "Meera Iyer", "staff", "admin", "SRM IST KTR Staff");
+  const org = await ensureUser("organizer@eventdeck.test", "Dr. Arjun Mehta", "faculty", "organizer", "SRM IST KTR — Dept. of Computing Technologies");
+  const org2 = await ensureUser("cultural@eventdeck.test", "Kavya Rao", "host_student", "organizer", "SRM IST KTR — Directorate of Student Affairs");
+  const p1 = await ensureUser("participant@eventdeck.test", "Riya Sharma", "host_student", "participant", "SRM IST KTR — Computer Science & Engineering");
+  const p2 = await ensureUser("guest@eventdeck.test", "Daniel Thomas", "external_student", "participant", "Loyola College, Chennai");
+  const p3 = await ensureUser("aditi@eventdeck.test", "Aditi Nair", "host_student", "participant", "SRM IST KTR — Electronics & Communication");
+  await ensureUser("applicant@eventdeck.test", "Farhan Ali", "host_student", "participant", "SRM IST KTR — Directorate of Student Affairs");
 
   const [{ n }] = await db.select({ n: count() }).from(events).where(eq(events.organizerId, org.id));
   if (n > 0) {
@@ -89,12 +89,12 @@ async function main() {
   const seeds: (Seed & { owner: Profile })[] = [
     {
       owner: org,
-      title: "HackNorth 2026: 24-Hour Build Sprint",
-      summary: "Form a team, ship something real in 24 hours, and pitch it to industry judges.",
+      title: "SRM Hackathon 2026: 24-Hour Build Sprint",
+      summary: "Form a team, ship something real in 24 hours, and pitch it to industry judges at SRM KTR.",
       description:
-        "HackNorth is the flagship student hackathon of the School of Engineering.\n\nTeams of up to four build around three open tracks — climate, campus life, and accessible tech. Meals, mentors and a midnight snack run are included. Final pitches are judged by alumni founders and engineers from partner companies.\n\nBring a laptop, a charger, and your student ID.",
+        "SRM Hackathon is the flagship student hackathon hosted at SRM IST Kattankulathur.\n\nTeams of up to four build around three open tracks — climate, campus life, and accessible tech. Meals, mentors and a midnight snack run are included. Final pitches are judged by alumni founders and engineers from partner companies.\n\nBring a laptop, a charger, and your SRM or college student ID.",
       category: "technical",
-      venue: "Innovation Centre, Block C",
+      venue: "Tech Park, 7th Floor, SRM KTR",
       start: at(9, 9),
       hours: 24,
       tiers: [
@@ -106,16 +106,16 @@ async function main() {
     {
       owner: org2,
       title: "Raag & Rhythm — An Evening of Indian Classical Fusion",
-      summary: "Sitar, tabla and a string quartet share one stage for a night under the open sky.",
+      summary: "Sitar, tabla and a string quartet share one stage for a night at SRM KTR.",
       description:
-        "The Cultural Council presents its annual fusion concert at the amphitheatre. Expect improvisation, call-and-response and a finale that brings every performer on stage.\n\nSeating is tiered: Silver seats are on the lawn, Gold seats in the first terraces, and Diamond seats include front-row cushions and a meet-the-artists session.",
+        "The Cultural Council presents its annual fusion concert at the Dr. T.P. Ganesan Auditorium. Expect improvisation, call-and-response and a finale that brings every performer on stage.\n\nSeating is tiered: Silver seats are in the upper balcony, Gold seats in the lower tier, and Diamond seats include front-row reservations and a meet-the-artists session.",
       category: "cultural",
-      venue: "Open-Air Amphitheatre",
+      venue: "Dr. T.P. Ganesan Auditorium, Main Hall",
       start: at(5, 18, 30),
       hours: 3,
       tiers: [
-        { name: "Silver", description: "Lawn seating", price: 149, capacity: 200 },
-        { name: "Gold", description: "Terrace seating", price: 349, capacity: 80 },
+        { name: "Silver", description: "Balcony seating", price: 149, capacity: 200 },
+        { name: "Gold", description: "Lower tier seating", price: 349, capacity: 80 },
         { name: "Diamond", description: "Front row + meet the artists", price: 799, capacity: 12 },
       ],
       max: 6,
@@ -127,7 +127,7 @@ async function main() {
       description:
         "Bring a laptop with Python 3.11. We'll walk through data cleaning, evaluation and fine-tuning using open datasets from the university's research groups. Limited seats so every participant gets mentor time.",
       category: "workshop",
-      venue: "Computing Lab 2, Main Building",
+      venue: "University Building (UB) Computing Lab, KTR Campus",
       start: at(3, 14),
       hours: 3,
       tiers: [{ name: "Participant", price: 0, capacity: 40 }],
@@ -141,7 +141,7 @@ async function main() {
       description:
         "An open day for the whole university community to see what our labs are working on. Grab a coffee, wander the poster hall, and vote for the people's choice award.",
       category: "academic",
-      venue: "Central Library Atrium",
+      venue: "Central Library Atrium, KTR Campus",
       start: at(12, 10),
       hours: 6,
       tiers: [{ name: "General admission", price: 0, capacity: 400 }],
@@ -150,10 +150,10 @@ async function main() {
     {
       owner: org2,
       title: "Inter-College Football Cup — Finals",
-      summary: "Northfield takes on St. Joseph's for the cup. Bring your loudest voice.",
+      summary: "SRM Patriots takes on Loyola College for the cup. Bring your loudest voice.",
       description: "The final of this season's inter-college football cup. Gates open an hour before kickoff.",
       category: "sports",
-      venue: "University Stadium",
+      venue: "SRM Main Stadium, Kattankulathur",
       start: at(7, 16),
       hours: 2,
       tiers: [
@@ -168,7 +168,7 @@ async function main() {
       summary: "Three alumni product leaders on breaking in, switching tracks and what they'd do differently.",
       description: "An informal fireside chat followed by small-group mentoring tables. Light refreshments provided.",
       category: "career",
-      venue: "Seminar Hall 1",
+      venue: "Bio-Engineering Seminar Hall, KTR Campus",
       start: at(4, 17),
       hours: 2,
       tiers: [{ name: "RSVP", price: 0, capacity: 90 }],
@@ -181,7 +181,7 @@ async function main() {
       summary: "A double bill of newly restored Satyajit Ray films, with chai at the interval.",
       description: "Our late-night screening series returns with two restored classics on the big screen.",
       category: "social",
-      venue: "Auditorium B",
+      venue: "Mini Auditorium 1, Dr. T.P. Ganesan Audi",
       start: at(2, 21),
       hours: 4,
       tiers: [{ name: "Screening", price: 99, capacity: 6 }],
@@ -193,7 +193,7 @@ async function main() {
       summary: "Briefing on the new academic calendar — shared by direct link with department heads.",
       description: "This session is unlisted and shared by direct link only.",
       category: "academic",
-      venue: "Senate Room",
+      venue: "Senate Room, University Building",
       start: at(6, 11),
       hours: 1,
       tiers: [{ name: "Attendee", price: 0, capacity: 30 }],
@@ -206,7 +206,7 @@ async function main() {
       summary: "End-of-semester showcase of student-built robots.",
       description: "Still being planned.",
       category: "technical",
-      venue: "Mechanical Workshop",
+      venue: "Mechanical Engineering Workshop, KTR Campus",
       start: at(20, 15),
       hours: 3,
       tiers: [{ name: "Visitor", price: 0, capacity: 150 }],

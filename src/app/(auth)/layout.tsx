@@ -4,7 +4,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <main className="grid flex-1 lg:grid-cols-[1fr_minmax(0,560px)]">
       <div className="flex items-center justify-center px-4 py-12 sm:px-6">
-        <div className="page-enter w-full max-w-sm">{children}</div>
+        <div className="page-enter w-full max-w-md">{children}</div>
       </div>
       <aside className="relative hidden overflow-hidden bg-foreground text-background lg:block" aria-hidden>
         <svg viewBox="0 0 560 800" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
