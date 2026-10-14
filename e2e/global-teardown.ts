@@ -1,4 +1,4 @@
-import { config } from "dotenv";
+import { loadTestEnv } from "../tests/env-guard";
 import postgres from "postgres";
 
 /**
@@ -7,7 +7,8 @@ import postgres from "postgres";
  * bookings on seeded events are released first so inventory stays consistent.
  */
 export default async function globalTeardown() {
-  config({ path: ".env.local" });
+  // Deletes only E2E-created rows, and only in the guarded Supabase TEST project.
+  loadTestEnv("e2e-teardown");
   const sql = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
   try {
     await sql.begin(async (tx) => {
@@ -25,6 +26,7 @@ export default async function globalTeardown() {
         update ticket_tiers t set allocated = greatest(t.allocated - x.q, 0)
         from (select tier_id, sum(quantity)::int q from booking_items where booking_id = any(${holding}::uuid[]) group by tier_id) x
         where t.id = x.tier_id`;
+      await tx`delete from event_moderators where event_id = any(${eventIds}::uuid[]) or user_id = any(${userIds}::uuid[]) or added_by = any(${userIds}::uuid[])`;
       await tx`delete from audit_logs where event_id = any(${eventIds}::uuid[]) or actor_id = any(${userIds}::uuid[]) or entity_id = any(${bookingIds}::text[])`;
       await tx`delete from check_ins where event_id = any(${eventIds}::uuid[]) or ticket_id in (select id from tickets where booking_id = any(${bookingIds}::uuid[]))`;
       await tx`delete from refunds where booking_id = any(${bookingIds}::uuid[]) or event_id = any(${eventIds}::uuid[])`;

@@ -17,6 +17,7 @@ export default async function OrganizerLayout({ children }: { children: React.Re
       links={[
         { href: "/organizer", label: "Overview", icon: "dashboard", exact: true, badge: n },
         { href: "/organizer/events", label: "My events", icon: "events" },
+        { href: "/organizer/payouts", label: "Payouts & Bank", icon: "payouts" },
         { href: "/organizer/events/new", label: "New event", icon: "newEvent" },
       ]}
     >

@@ -35,6 +35,9 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
         maxTicketsPerBooking: event.maxTicketsPerBooking,
         eligibleCategories: event.eligibleCategories,
         allowPassRequests: event.allowPassRequests,
+        eligibleInstitutionTypes: event.eligibleInstitutionTypes,
+        eligibleCampuses: event.eligibleCampuses,
+        eligibleInstitutions: event.eligibleInstitutions,
         tiers: tiers.map((t) => ({ id: t.id, name: t.name, description: t.description, priceRupees: t.pricePaise / 100, capacity: t.capacity })),
       }}
     />

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowUpRight, MapPin } from "lucide-react";
+import { ArrowUpRight, Building2, MapPin } from "lucide-react";
 import type { EventCard as EventCardData } from "@/lib/server/events";
 import { categoryLabel } from "@/lib/constants";
 import { formatPaise, formatShortDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PosterArt } from "./poster-art";
+import { describeAudience } from "@/lib/domain/eligibility";
 
 export function priceLabel(min: number | null, max: number | null) {
   if (min === null) return "—";
@@ -56,6 +57,10 @@ export function EventCard({ event, className, priority }: { event: EventCardData
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <MapPin className="size-3.5 shrink-0" />
           <span className="truncate">{event.venue}</span>
+        </p>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Building2 className="size-3.5 shrink-0" />
+          <span className="truncate">{describeAudience(event).label}</span>
         </p>
         <div className="mt-auto flex items-center justify-between border-t pt-3 text-sm">
           <span className="font-semibold tabular">{priceLabel(event.minPricePaise, event.maxPricePaise)}</span>

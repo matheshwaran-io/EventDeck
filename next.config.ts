@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // E2E runs a second dev server against the local test DB; it needs its own build dir.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   turbopack: {
     rules: {
       "*.css": {

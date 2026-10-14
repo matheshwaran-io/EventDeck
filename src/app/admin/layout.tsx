@@ -14,6 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/users", label: "People", icon: "users", badge: m.pendingApplications },
         { href: "/admin/cancellations", label: "Cancellations", icon: "cancellations", badge: m.pendingCancellations },
         { href: "/admin/refunds", label: "Refunds", icon: "refunds", badge: m.refunds.pending },
+        { href: "/admin/payouts", label: "Payouts", icon: "payouts", badge: m.pendingPayouts },
         { href: "/admin/exceptions", label: "Exceptions", icon: "exceptions", badge: m.openExceptions },
         { href: "/admin/reports", label: "Reports", icon: "reports" },
         { href: "/admin/audit", label: "Audit log", icon: "audit" },

@@ -68,6 +68,7 @@ export type SearchParams = {
   venue?: string;
   available?: boolean;
   free?: boolean;
+  audience?: "srm" | "intercollege" | "open";
   when?: "upcoming" | "past";
   page?: number;
   pageSize?: number;
@@ -91,6 +92,9 @@ export async function searchEvents(params: SearchParams) {
   if (params.venue) conds.push(ilike(events.venue, `%${params.venue.replace(/[%_\\]/g, "\\$&")}%`));
   if (params.available)
     conds.push(sql`exists (select 1 from ticket_tiers t where t.event_id = ${EVENT_ID} and t.allocated < t.capacity)`);
+  if (params.audience === "srm") conds.push(sql`${events.eligibleInstitutionTypes} = '{SRM}'::institution_type[]`);
+  if (params.audience === "intercollege") conds.push(sql`'EXTERNAL_INSTITUTION' = any(${events.eligibleInstitutionTypes})`);
+  if (params.audience === "open") conds.push(sql`'GUEST' = any(${events.eligibleInstitutionTypes}) and cardinality(${events.eligibleInstitutions}) = 0`);
   if (params.free) conds.push(sql`exists (select 1 from ticket_tiers t where t.event_id = ${EVENT_ID} and t.price_paise = 0)`);
 
   const where = and(...conds);
@@ -199,6 +203,10 @@ function eventValues(input: EventParsed) {
     maxTicketsPerBooking: input.maxTicketsPerBooking,
     eligibleCategories: input.eligibleCategories,
     allowPassRequests: input.allowPassRequests,
+    eligibleInstitutionTypes: input.eligibleInstitutionTypes,
+    // Campuses only matter when SRM members are allowed; keep a valid non-empty default otherwise.
+    eligibleCampuses: input.eligibleInstitutionTypes.includes("SRM") ? input.eligibleCampuses : (["KTR", "RAMAPURAM", "VADAPALANI", "OTHER_SRM"] as const).slice(),
+    eligibleInstitutions: input.eligibleInstitutionTypes.includes("EXTERNAL_INSTITUTION") ? input.eligibleInstitutions : [],
   };
 }
 

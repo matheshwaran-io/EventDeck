@@ -15,7 +15,7 @@ export function EventFilters({ venues }: { venues: string[] }) {
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState(sp.get("q") ?? "");
-  const advancedActive = ["from", "to", "venue", "available", "free"].some((k) => sp.get(k));
+  const advancedActive = ["from", "to", "venue", "available", "free", "audience"].some((k) => sp.get(k));
   const [showMore, setShowMore] = useState(advancedActive);
   const first = useRef(true);
 
@@ -43,7 +43,7 @@ export function EventFilters({ venues }: { venues: string[] }) {
   }, [q]);
 
   const category = sp.get("category");
-  const activeCount = ["category", "from", "to", "venue", "available", "free", "q"].filter((k) => sp.get(k)).length;
+  const activeCount = ["category", "from", "to", "venue", "available", "free", "audience", "q"].filter((k) => sp.get(k)).length;
 
   return (
     <div className="space-y-3">
@@ -84,7 +84,16 @@ export function EventFilters({ venues }: { venues: string[] }) {
       </div>
 
       {showMore && (
-        <div id="more-filters" className="surface grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+        <div id="more-filters" className="surface grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
+          <label className="space-y-1.5 text-[0.8125rem] font-medium">
+            Audience
+            <NativeSelect value={sp.get("audience") ?? ""} onChange={(e) => update({ audience: e.target.value || null })}>
+              <option value="">Any audience</option>
+              <option value="srm">SRM only</option>
+              <option value="intercollege">Inter-college</option>
+              <option value="open">Open to all</option>
+            </NativeSelect>
+          </label>
           <label className="space-y-1.5 text-[0.8125rem] font-medium">
             From
             <Input type="date" value={sp.get("from") ?? ""} onChange={(e) => update({ from: e.target.value || null })} />

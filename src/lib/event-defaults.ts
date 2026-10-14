@@ -29,6 +29,9 @@ export function defaultEventValues(): FormIn {
     maxTicketsPerBooking: 4,
     eligibleCategories: PARTICIPANT_CATEGORIES.map((c) => c.value),
     allowPassRequests: false,
+    eligibleInstitutionTypes: ["SRM", "EXTERNAL_INSTITUTION", "GUEST"],
+    eligibleCampuses: ["KTR", "RAMAPURAM", "VADAPALANI", "OTHER_SRM"],
+    eligibleInstitutions: [],
     tiers: [{ id: "", name: "General", description: "", priceRupees: 0, capacity: 100 }],
   };
 }

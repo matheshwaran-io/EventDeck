@@ -136,10 +136,10 @@ describe("payments", () => {
     expect(results.filter((r) => r.outcome === "confirmed")).toHaveLength(1);
     expect(results.filter((r) => r.outcome === "already_processed")).toHaveLength(2);
     const after = await booking(b.id);
-    expect(after.status).toBe("pending_verification");
+    expect(after.status).toBe("approved");
     expect(after.paymentStatus).toBe("paid");
-    // Paid is not valid: no tickets until the organizer approves.
-    expect(await db.select().from(tickets).where(eq(tickets.bookingId, b.id))).toHaveLength(0);
+    // Normal paid bookings are auto-approved and tickets issued immediately.
+    expect(await db.select().from(tickets).where(eq(tickets.bookingId, b.id))).toHaveLength(1);
   });
 
   it("records failures and allows retry within the hold", async () => {
@@ -154,7 +154,7 @@ describe("payments", () => {
     expect(o2.orderId).not.toBe(o1.orderId);
     expect((await booking(b.id)).paymentStatus).toBe("pending");
     await confirmPayment({ orderId: o2.orderId, paymentId: `pay_retry_${key().slice(0, 8)}`, via: "mock" });
-    expect((await booking(b.id)).status).toBe("pending_verification");
+    expect((await booking(b.id)).status).toBe("approved");
   });
 
   it("recovers a late payment when seats are still free", async () => {
@@ -168,7 +168,7 @@ describe("payments", () => {
     expect((await tier(tiers[0]!.id)).allocated).toBe(0);
     const r = await confirmPayment({ orderId: order.orderId, paymentId: `pay_late_ok_${key().slice(0, 8)}`, via: "webhook" });
     expect(r.outcome).toBe("recovered_late");
-    expect((await booking(b.id)).status).toBe("pending_verification");
+    expect((await booking(b.id)).status).toBe("approved");
     expect((await tier(tiers[0]!.id)).allocated).toBe(1);
   });
 
@@ -203,13 +203,19 @@ describe("payments", () => {
 });
 
 describe("verification, tickets and check-in", () => {
-  it("issues tickets only on approval and only once; organizers can't touch other events", async () => {
+  it("issues tickets for complimentary passes only on organizer approval", async () => {
     const org = await makeUser("organizer");
     const otherOrg = await makeUser("organizer");
     const u = await makeUser();
-    const { event, tiers } = await makeEvent(org, { tiers: [{ name: "Free", pricePaise: 0, capacity: 10 }] });
-    const b = await createBooking(u, { eventId: event.id, lines: [{ tierId: tiers[0]!.id, quantity: 2 }], attendeeNames: ["Asha", "Ravi"], idempotencyKey: key() });
-    expect(b.kind).toBe("free");
+    const { event, tiers } = await makeEvent(org, { tiers: [{ name: "VIP", pricePaise: 50000, capacity: 10 }] });
+    const b = await createBooking(u, {
+      eventId: event.id,
+      lines: [{ tierId: tiers[0]!.id, quantity: 2 }],
+      attendeeNames: ["Asha", "Ravi"],
+      complimentary: { reason: "VIP Guest pass" },
+      idempotencyKey: key(),
+    });
+    expect(b.kind).toBe("complimentary");
     expect(b.status).toBe("pending_verification");
     await expect(decideBooking(otherOrg, b.id, "approve")).rejects.toThrow(/own events/);
     await expect(decideBooking(u, b.id, "approve")).rejects.toThrow();
@@ -222,18 +228,21 @@ describe("verification, tickets and check-in", () => {
     expect(new Set(issued.map((t) => t.qrToken)).size).toBe(2);
   });
 
-  it("rejecting a paid booking releases seats and flags the payment for admins", async () => {
+  it("rejecting a pass request releases seats", async () => {
     const org = await makeUser("organizer");
     const u = await makeUser();
-    const { event, tiers } = await makeEvent(org);
-    const b = await createBooking(u, { eventId: event.id, lines: [{ tierId: tiers[0]!.id, quantity: 2 }], attendeeNames: [], idempotencyKey: key() });
-    const o = await createOrderForBooking(u, b.id);
-    await confirmPayment({ orderId: o.orderId, paymentId: `pay_${key().slice(0, 8)}`, via: "mock" });
-    await decideBooking(org, b.id, "reject", "Duplicate registration");
+    const { event, tiers } = await makeEvent(org, { tiers: [{ name: "VIP", pricePaise: 50000, capacity: 10 }] });
+    const b = await createBooking(u, {
+      eventId: event.id,
+      lines: [{ tierId: tiers[0]!.id, quantity: 2 }],
+      attendeeNames: [],
+      complimentary: { reason: "Not eligible" },
+      idempotencyKey: key(),
+    });
+    expect(b.status).toBe("pending_verification");
+    await decideBooking(org, b.id, "reject", "Not eligible");
     const after = await booking(b.id);
     expect(after.status).toBe("rejected");
-    expect(after.paymentStatus).toBe("paid");
-    expect(after.exceptionReason).toMatch(/administrative/);
     expect((await tier(tiers[0]!.id)).allocated).toBe(0);
   });
 

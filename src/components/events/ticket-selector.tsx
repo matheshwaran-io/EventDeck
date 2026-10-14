@@ -24,7 +24,7 @@ export function TicketSelector({
 }: {
   event: { id: string; slug: string; status: string; maxPerBooking: number; registrationClosesAt: string; allowPassRequests: boolean };
   tiers: Tier[];
-  viewer: { name: string; eligible: boolean; held: number; isOwner: boolean } | null;
+  viewer: { name: string; eligible: boolean; ineligibleReason?: string; held: number; isOwner: boolean } | null;
   closed: boolean;
 }) {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function TicketSelector({
           : soldOut
             ? "Sold out."
             : viewer && !viewer.eligible
-              ? "Your participant category isn't eligible for this event."
+              ? (viewer.ineligibleReason ?? "You aren't eligible for this event.")
               : viewer && limit === 0
                 ? `You already hold the maximum of ${event.maxPerBooking} ticket(s) for this event.`
                 : null;
@@ -226,8 +226,8 @@ export function TicketSelector({
         <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
           <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
           {amount > 0
-            ? `Seats are held for ${HOLD_MINUTES} minutes while you pay (Razorpay Test Mode). Tickets activate once the organizer verifies your booking.`
-            : "Tickets activate once the organizer verifies your registration."}
+            ? `Seats are held for ${HOLD_MINUTES} minutes while you pay (Razorpay Test Mode). Tickets are issued immediately upon payment.`
+            : "Tickets are issued immediately upon registration."}
         </p>
       </div>
 

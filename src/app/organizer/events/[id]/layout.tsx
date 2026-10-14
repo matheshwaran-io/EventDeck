@@ -67,6 +67,7 @@ export default async function ManagedEventLayout({ children, params }: LayoutPro
           { href: `${base}/bookings`, label: "Bookings", badge: counts.review + counts.passes },
           { href: `${base}/scan`, label: "Scanner" },
           { href: `${base}/attendance`, label: "Attendance" },
+          { href: `${base}/team`, label: "Team" },
           { href: `${base}/edit`, label: "Edit" },
           { href: `${base}/activity`, label: "Activity" },
         ]}

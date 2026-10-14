@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { homeFor } from "@/lib/auth";
+import { homeFor } from "@/lib/roles";
 import { APPLICATION_ROLES } from "@/db/schema";
 import { loginSchema, signupSchema } from "@/lib/validation/auth";
 

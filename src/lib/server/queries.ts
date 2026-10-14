@@ -12,6 +12,7 @@ import {
   notifications,
   organizerApplications,
   payments,
+  payouts,
   profiles,
   refunds,
   ticketTiers,
@@ -209,7 +210,7 @@ export async function auditTrail(params: { eventId?: string; eventIds?: string[]
 
 export async function adminMetrics() {
   const now = new Date();
-  const [[users], [ev], [bk], [pay], [att], [ref], [pendingApps], [pendingCancels], [exceptions]] = await Promise.all([
+  const [[users], [ev], [bk], [pay], [att], [ref], [pendingApps], [pendingCancels], [exceptions], [pendingPayouts]] = await Promise.all([
     db
       .select({
         total: count(),
@@ -253,6 +254,7 @@ export async function adminMetrics() {
       .select({ n: count() })
       .from(bookings)
       .where(and(isNotNull(bookings.exceptionReason), isNull(bookings.exceptionResolvedAt))),
+    db.select({ n: count() }).from(payouts).where(eq(payouts.status, "requested")),
   ]);
   return {
     users: users!,
@@ -264,6 +266,7 @@ export async function adminMetrics() {
     pendingApplications: pendingApps!.n,
     pendingCancellations: pendingCancels!.n,
     openExceptions: exceptions!.n,
+    pendingPayouts: pendingPayouts!.n,
   };
 }
 

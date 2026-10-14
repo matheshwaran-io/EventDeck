@@ -6,15 +6,15 @@ import type { BookingStatus, PaymentStatus, RefundStatus } from "@/db/schema";
  * can never move a booking to an arbitrary state.
  */
 export const BOOKING_TRANSITIONS: Record<BookingStatus, readonly BookingStatus[]> = {
-  awaiting_payment: ["pending_verification", "cancelled", "expired", "event_cancelled"],
+  awaiting_payment: ["approved", "pending_verification", "cancelled", "expired", "event_cancelled"],
   // -> cancelled only for unpaid (free / complimentary) requests; enforced in the service.
   pending_verification: ["approved", "rejected", "cancelled", "event_cancelled"],
   approved: ["event_cancelled"],
   rejected: [],
   // A verified payment can still arrive for a closed hold; it is either
-  // re-allocated (-> pending_verification) or parked as an exception.
-  cancelled: ["pending_verification", "payment_exception"],
-  expired: ["pending_verification", "payment_exception"],
+  // re-allocated (-> approved / pending_verification) or parked as an exception.
+  cancelled: ["approved", "pending_verification", "payment_exception"],
+  expired: ["approved", "pending_verification", "payment_exception"],
   event_cancelled: [],
   payment_exception: [],
 };

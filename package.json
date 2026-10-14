@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--max-http-header-size=65536' next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -19,7 +19,9 @@
     "admin:create": "tsx --conditions react-server scripts/create-admin.ts",
     "cloud:migrate": "ENV_FILE=.env.cloud drizzle-kit migrate",
     "cloud:admin": "ENV_FILE=.env.cloud tsx --conditions react-server scripts/create-admin.ts",
-    "cloud:seed": "ENV_FILE=.env.cloud tsx --conditions react-server scripts/seed.ts"
+    "cloud:seed": "ENV_FILE=.env.cloud tsx --conditions react-server scripts/seed.ts",
+    "test:db:migrate": "ENV_FILE=.env.test drizzle-kit migrate",
+    "test:db:seed": "ENV_FILE=.env.test tsx --conditions react-server scripts/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -58,7 +60,6 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "supabase": "^2.120.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

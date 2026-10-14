@@ -13,7 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { EVENT_CATEGORIES, MAX_POSTER_BYTES, PARTICIPANT_CATEGORIES } from "@/lib/constants";
+import { EVENT_CATEGORIES, MAX_POSTER_BYTES, PARTICIPANT_CATEGORIES, SRM_CAMPUSES } from "@/lib/constants";
+import { parseInstitutionList } from "@/lib/domain/eligibility";
+
+const INSTITUTION_OPTIONS = [
+  { value: "SRM", label: "SRM University", hint: "Verified SRM members" },
+  { value: "EXTERNAL_INSTITUTION", label: "Other colleges", hint: "Inter-college participants" },
+  { value: "GUEST", label: "Guests", hint: "Public / unaffiliated" },
+] as const;
 import { posterUrl } from "@/lib/poster";
 import { cn } from "@/lib/utils";
 import { eventSchema } from "@/lib/validation/event";
@@ -65,6 +72,9 @@ export function EventForm({
   const tiers = useFieldArray({ control, name: "tiers" });
   const e = formState.errors;
   const eligible = watch("eligibleCategories") ?? [];
+  const instTypes = watch("eligibleInstitutionTypes") ?? [];
+  const campuses = watch("eligibleCampuses") ?? [];
+  const [institutionsText, setInstitutionsText] = useState((defaults.eligibleInstitutions ?? []).join("\n"));
 
   useEffect(() => () => {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -236,6 +246,73 @@ export function EventForm({
             <Input id="maxTicketsPerBooking" type="number" min={1} max={10} {...register("maxTicketsPerBooking")} />
           </Field>
         </div>
+        <fieldset>
+          <legend className="text-[0.8125rem] font-medium">Institutions</legend>
+          <p className="mt-0.5 text-xs text-muted-foreground">Checked on the server against each participant&apos;s profile at booking time.</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {INSTITUTION_OPTIONS.map((o) => {
+              const on = instTypes.includes(o.value);
+              return (
+                <label
+                  key={o.value}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                    on ? "border-foreground/40 bg-card" : "text-muted-foreground hover:bg-secondary/60",
+                  )}
+                >
+                  <input type="checkbox" value={o.value} className="mt-0.5 size-4 accent-[var(--signal)]" {...register("eligibleInstitutionTypes")} />
+                  <span>
+                    <span className="block font-medium text-foreground">{o.label}</span>
+                    <span className="block text-xs">{o.hint}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {e.eligibleInstitutionTypes?.message && <p className="mt-1.5 text-xs font-medium text-destructive">{e.eligibleInstitutionTypes.message}</p>}
+        </fieldset>
+        {instTypes.includes("SRM") && (
+          <fieldset>
+            <legend className="text-[0.8125rem] font-medium">SRM campuses</legend>
+            <p className="mt-0.5 text-xs text-muted-foreground">One campus = campus-only event; several = inter-campus.</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-4">
+              {SRM_CAMPUSES.map((c) => {
+                const on = campuses.includes(c.value);
+                return (
+                  <label
+                    key={c.value}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                      on ? "border-foreground/40 bg-card" : "text-muted-foreground hover:bg-secondary/60",
+                    )}
+                  >
+                    <input type="checkbox" value={c.value} className="size-4 accent-[var(--signal)]" {...register("eligibleCampuses")} />
+                    {c.label}
+                  </label>
+                );
+              })}
+            </div>
+            {e.eligibleCampuses?.message && <p className="mt-1.5 text-xs font-medium text-destructive">{e.eligibleCampuses.message}</p>}
+          </fieldset>
+        )}
+        {instTypes.includes("EXTERNAL_INSTITUTION") && (
+          <Field
+            label="Approved colleges (optional)"
+            htmlFor="eligibleInstitutions"
+            hint="One per line or comma-separated, e.g. VIT, Anna University. Leave empty to accept any college."
+            error={(e.eligibleInstitutions as { message?: string } | undefined)?.message}
+          >
+            <Textarea
+              id="eligibleInstitutions"
+              className="min-h-20"
+              value={institutionsText}
+              onChange={(ev) => {
+                setInstitutionsText(ev.target.value);
+                setValue("eligibleInstitutions", parseInstitutionList(ev.target.value), { shouldDirty: true, shouldValidate: true });
+              }}
+            />
+          </Field>
+        )}
         <fieldset>
           <legend className="text-[0.8125rem] font-medium">Who can register</legend>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">

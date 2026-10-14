@@ -101,6 +101,19 @@ export const cancellationRequestStatus = pgEnum("cancellation_request_status", [
   "rejected",
 ]);
 
+export const payoutAccountStatus = pgEnum("payout_account_status", [
+  "unverified",
+  "verified",
+  "rejected",
+]);
+
+export const payoutStatus = pgEnum("payout_status", [
+  "requested",
+  "processing",
+  "completed",
+  "rejected",
+]);
+
 /* ----------------------------------------------------------------------------
  * Identity
  * ------------------------------------------------------------------------- */
@@ -191,6 +204,18 @@ export const events = pgTable(
       .notNull()
       .default(sql`'{host_student,external_student,faculty,staff,alumni,guest}'::participant_category[]`),
     allowPassRequests: boolean("allow_pass_requests").notNull().default(false),
+    /** Which kinds of institution may register. */
+    eligibleInstitutionTypes: institutionType("eligible_institution_types")
+      .array()
+      .notNull()
+      .default(sql`'{SRM,EXTERNAL_INSTITUTION,GUEST}'::institution_type[]`),
+    /** SRM campuses allowed (applies to SRM members only). */
+    eligibleCampuses: campusEnum("eligible_campuses")
+      .array()
+      .notNull()
+      .default(sql`'{KTR,RAMAPURAM,VADAPALANI,OTHER_SRM}'::campus[]`),
+    /** Approved external institutions; empty = any external institution. */
+    eligibleInstitutions: text("eligible_institutions").array().notNull().default(sql`'{}'::text[]`),
     publishedAt: ts("published_at"),
     cancelledAt: ts("cancelled_at"),
     cancellationReason: text("cancellation_reason"),
@@ -214,6 +239,9 @@ export const events = pgTable(
       "events_eligible_nonempty",
       sql`cardinality(${t.eligibleCategories}) > 0`,
     ),
+    check("events_institution_types_nonempty", sql`cardinality(${t.eligibleInstitutionTypes}) > 0`),
+    check("events_campuses_nonempty", sql`cardinality(${t.eligibleCampuses}) > 0`),
+    check("events_institutions_max", sql`cardinality(${t.eligibleInstitutions}) <= 25`),
   ],
 );
 
@@ -441,6 +469,72 @@ export const refunds = pgTable(
 );
 
 /* ----------------------------------------------------------------------------
+ * Organizer Payouts & Settlements
+ * ------------------------------------------------------------------------- */
+
+export const organizerPayoutAccounts = pgTable(
+  "organizer_payout_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    accountType: text("account_type").notNull().default("bank_account"), // 'bank_account' | 'upi'
+    beneficiaryName: text("beneficiary_name").notNull(),
+    bankName: text("bank_name"),
+    accountNumber: text("account_number"),
+    ifscCode: text("ifsc_code"),
+    upiId: text("upi_id"),
+    status: payoutAccountStatus("status").notNull().default("verified"),
+    verificationNote: text("verification_note"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("payout_accounts_user_idx").on(t.userId)],
+);
+
+export const payouts = pgTable(
+  "payouts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reference: text("reference").notNull().unique(), // e.g. PO-839210
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id),
+    organizerId: uuid("organizer_id")
+      .notNull()
+      .references(() => profiles.id),
+    amountPaise: integer("amount_paise").notNull(),
+    platformFeePaise: integer("platform_fee_paise").notNull().default(0),
+    netAmountPaise: integer("net_amount_paise").notNull(),
+    status: payoutStatus("status").notNull().default("requested"),
+    payoutMethod: text("payout_method").notNull().default("bank_transfer"), // 'bank_transfer' | 'upi'
+    beneficiarySnapshot: jsonb("beneficiary_snapshot").$type<{
+      beneficiaryName: string;
+      accountType: string;
+      bankName?: string | null;
+      accountNumber?: string | null;
+      ifscCode?: string | null;
+      upiId?: string | null;
+    }>().notNull(),
+    utr: text("utr"),
+    notes: text("notes"),
+    processedBy: uuid("processed_by").references(() => profiles.id),
+    processedAt: ts("processed_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("payouts_event_idx").on(t.eventId),
+    index("payouts_organizer_idx").on(t.organizerId),
+    index("payouts_status_idx").on(t.status),
+    check("payouts_amount_pos", sql`${t.amountPaise} > 0`),
+    check("payouts_net_nonneg", sql`${t.netAmountPaise} >= 0`),
+  ],
+);
+
+/* ----------------------------------------------------------------------------
  * Operations
  * ------------------------------------------------------------------------- */
 
@@ -466,6 +560,33 @@ export const cancellationRequests = pgTable(
       .on(t.eventId)
       .where(sql`${t.status} = 'pending'`),
     index("cancellation_requests_status_idx").on(t.status, t.createdAt),
+  ],
+);
+
+/** Event-scoped check-in moderators. Not a platform role: any active account can be assigned. */
+export const eventModerators = pgTable(
+  "event_moderators",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    addedBy: uuid("added_by")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: createdAt(),
+    revokedAt: ts("revoked_at"),
+    revokedBy: uuid("revoked_by").references(() => profiles.id),
+  },
+  (t) => [
+    uniqueIndex("event_moderators_one_active")
+      .on(t.eventId, t.userId)
+      .where(sql`${t.revokedAt} is null`),
+    index("event_moderators_user_idx").on(t.userId).where(sql`${t.revokedAt} is null`),
+    index("event_moderators_event_idx").on(t.eventId),
   ],
 );
 
@@ -513,6 +634,7 @@ export type Ticket = typeof tickets.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type Refund = typeof refunds.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type EventModerator = typeof eventModerators.$inferSelect;
 export type Role = (typeof userRole.enumValues)[number];
 export type InstitutionType = (typeof institutionType.enumValues)[number];
 export type Campus = (typeof campusEnum.enumValues)[number];
@@ -531,3 +653,7 @@ export type EventCategory = (typeof eventCategory.enumValues)[number];
 export type BookingStatus = (typeof bookingStatus.enumValues)[number];
 export type PaymentStatus = (typeof paymentStatus.enumValues)[number];
 export type RefundStatus = (typeof refundStatus.enumValues)[number];
+export type PayoutStatus = (typeof payoutStatus.enumValues)[number];
+export type PayoutAccountStatus = (typeof payoutAccountStatus.enumValues)[number];
+export type OrganizerPayoutAccount = typeof organizerPayoutAccounts.$inferSelect;
+export type Payout = typeof payouts.$inferSelect;

@@ -1,10 +1,10 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, checkIns, profiles, ticketTiers, tickets, type Profile } from "@/db/schema";
 import { parseScan } from "@/lib/domain/tokens";
 import { audit } from "./audit";
-import { assertCanManageEvent } from "./bookings";
+import { assertCanScanEvent } from "./moderators";
 
 export type ScanResult =
   | { status: "checked_in"; ticket: ScanTicket; scannedAt: string }
@@ -16,7 +16,7 @@ export type ScanTicket = { ticketNumber: string; attendeeName: string; tierName:
 
 /** Validate a scan server-side and record the check-in exactly once. */
 export async function checkInTicket(actor: Profile, eventId: string, raw: string, method: "qr" | "manual"): Promise<ScanResult> {
-  const event = await assertCanManageEvent(db, actor, eventId);
+  const { event } = await assertCanScanEvent(db, actor, eventId);
   const parsed = parseScan(raw);
   if (!parsed) return { status: "invalid", message: "That code isn't a ticket from this system." };
 
@@ -109,6 +109,7 @@ export async function attendance(eventId: string) {
       buyer: profiles.fullName,
       buyerEmail: profiles.email,
       checkedInAt: checkIns.scannedAt,
+      scannedBy: sql<string | null>`(select p.full_name from profiles p where p.id = ${checkIns.scannedBy})`,
     })
     .from(tickets)
     .innerJoin(ticketTiers, eq(ticketTiers.id, tickets.tierId))

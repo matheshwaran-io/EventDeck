@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { unreadCount } from "@/lib/server/queries";
+import { moderationCount } from "@/lib/server/moderators";
 import { Brand } from "@/components/common/brand";
 import { buttonVariants } from "@/components/ui/button";
 import { HeaderNav, MobileNav } from "./header-nav";
@@ -10,8 +11,8 @@ import { primaryLinks } from "./nav-links";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const unread = user ? await unreadCount(user.id) : 0;
-  const links = primaryLinks(user?.role ?? null);
+  const [unread, moderating] = user ? await Promise.all([unreadCount(user.id), moderationCount(user.id)]) : [0, 0];
+  const links = primaryLinks(user?.role ?? null, { moderating: moderating > 0 });
   const menuUser = user && { id: user.id, name: user.fullName, email: user.email, role: user.role };
 
   return (

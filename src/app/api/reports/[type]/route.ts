@@ -52,8 +52,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/reports/[typ
       rows = data.map(({ b, ...r }) => [b.reference, r.eventTitle, r.name, r.email, r.category, b.kind, b.status, b.paymentStatus, b.refundStatus, b.quantity, rupees(b.amountPaise), iso(b.createdAt), iso(b.decidedAt)]);
     } else if (type === "attendance") {
       const data = await attendance(eventId!);
-      headers = ["Ticket", "Attendee", "Tier", "Booking", "Booked by", "Email", "Ticket status", "Checked in at"];
-      rows = data.map((r) => [r.ticketNumber, r.attendeeName, r.tierName, r.reference, r.buyer, r.buyerEmail, r.status, iso(r.checkedInAt)]);
+      headers = ["Ticket", "Attendee", "Tier", "Booking", "Booked by", "Email", "Ticket status", "Checked in at", "Scanned by"];
+      rows = data.map((r) => [r.ticketNumber, r.attendeeName, r.tierName, r.reference, r.buyer, r.buyerEmail, r.status, iso(r.checkedInAt), r.scannedBy]);
     } else if (type === "payments") {
       const data = await db
         .select({ p: payments, reference: bookings.reference, eventTitle: events.title })

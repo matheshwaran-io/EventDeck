@@ -7,6 +7,7 @@ import {
   bookings,
   cancellationRequests,
   checkIns,
+  eventModerators,
   events,
   notifications,
   organizerApplications,
@@ -22,7 +23,8 @@ const created = { users: [] as string[], events: [] as string[] };
 
 export async function makeUser(role: Profile["role"] = "participant", category: Profile["category"] = "host_student") {
   const id = randomUUID();
-  const email = `test+${id.slice(0, 8)}@uems.test`;
+  // SRM students/staff need an official SRM email (QA-001); everyone else uses the test domain.
+  const email = `test+${id.slice(0, 8)}@${category === "host_student" || category === "staff" ? "srmist.edu.in" : "uems.test"}`;
   await db.execute(sql`
     insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
     values (${id}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', ${email}, '', now(),
@@ -46,7 +48,8 @@ export async function makeClassifiedUser(opts: {
   metadataOverrides?: Record<string, unknown>;
 } = {}) {
   const id = randomUUID();
-  const email = opts.email ?? `test+${id.slice(0, 8)}@uems.test`;
+  const srmGated = (opts.institutionType ?? "SRM") === "SRM" && ["STUDENT", "STAFF", undefined].includes(opts.affiliation ?? undefined);
+  const email = opts.email ?? `test+${id.slice(0, 8)}@${srmGated ? "srmist.edu.in" : "uems.test"}`;
   const meta = {
     full_name: opts.fullName ?? `Test User ${id.slice(0, 4)}`,
     institution_type: opts.institutionType ?? "SRM",
@@ -80,6 +83,7 @@ export async function makeEvent(
     allowPassRequests?: boolean;
     eligible?: Profile["category"][];
     status?: "draft" | "published";
+    audience?: { types?: Profile["institutionType"][]; campuses?: NonNullable<Profile["campus"]>[]; institutions?: string[] };
   } = {},
 ) {
   const now = Date.now();
@@ -100,6 +104,9 @@ export async function makeEvent(
       maxTicketsPerBooking: opts.maxPerBooking ?? 4,
       allowPassRequests: opts.allowPassRequests ?? false,
       ...(opts.eligible ? { eligibleCategories: opts.eligible } : {}),
+      ...(opts.audience?.types ? { eligibleInstitutionTypes: opts.audience.types } : {}),
+      ...(opts.audience?.campuses ? { eligibleCampuses: opts.audience.campuses } : {}),
+      ...(opts.audience?.institutions ? { eligibleInstitutions: opts.audience.institutions } : {}),
     })
     .returning();
   const tiers = await db
@@ -143,6 +150,7 @@ export async function cleanup() {
       await db.delete(bookings).where(inArray(bookings.id, bIds));
     }
     await db.delete(cancellationRequests).where(inArray(cancellationRequests.eventId, evIds));
+    await db.delete(eventModerators).where(inArray(eventModerators.eventId, evIds));
     await db.delete(ticketTiers).where(inArray(ticketTiers.eventId, evIds));
     await db.delete(events).where(inArray(events.id, evIds));
   }

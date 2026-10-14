@@ -1,4 +1,4 @@
-import { config } from "dotenv";
+import { loadTestEnv } from "./env-guard";
 
-config({ path: ".env.local" });
-config({ path: ".env.test", override: true });
+// Integration tests only: unit tests never touch a database.
+loadTestEnv("vitest");

@@ -56,7 +56,7 @@ describe("Razorpay webhook route", () => {
     expect(await other.json()).toMatchObject({ outcome: "already_processed" });
 
     const [after] = await db.select().from(bookings).where(eq(bookings.id, b.id));
-    expect(after).toMatchObject({ status: "pending_verification", paymentStatus: "paid" });
+    expect(after).toMatchObject({ status: "approved", paymentStatus: "paid" });
     await db.delete(webhookEvents).where(eq(webhookEvents.eventId, evtId));
   });
 });

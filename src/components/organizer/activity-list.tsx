@@ -36,12 +36,14 @@ const LABELS: Record<string, string> = {
   "user.deactivated": "deactivated an account",
   "user.reactivated": "reactivated an account",
   "user.admin_provisioned": "— administrator provisioned",
+  "moderator.added": "added a check-in moderator",
+  "moderator.revoked": "removed a check-in moderator",
 };
 
 export const describeAction = (action: string) => LABELS[action] ?? action.replace(/[._]/g, " ");
 
 export function detailSummary(details: Record<string, unknown>) {
-  const keys = ["reference", "ticketNumber", "title", "reason", "note", "outcome", "from", "to", "rows", "organization"];
+  const keys = ["moderator", "reference", "ticketNumber", "title", "reason", "note", "outcome", "from", "to", "rows", "organization"];
   return keys
     .filter((k) => details[k] !== undefined && details[k] !== null && details[k] !== "")
     .map((k) => `${k}: ${String(details[k]).slice(0, 80)}`)

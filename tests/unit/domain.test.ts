@@ -11,7 +11,7 @@ describe("booking state machine", () => {
   it("allows only the documented transitions", () => {
     expect(canTransition(BOOKING_TRANSITIONS, "awaiting_payment", "pending_verification")).toBe(true);
     expect(canTransition(BOOKING_TRANSITIONS, "pending_verification", "approved")).toBe(true);
-    expect(canTransition(BOOKING_TRANSITIONS, "awaiting_payment", "approved")).toBe(false); // must be paid + verified
+    expect(canTransition(BOOKING_TRANSITIONS, "awaiting_payment", "approved")).toBe(true); // auto-approved on payment
     expect(canTransition(BOOKING_TRANSITIONS, "approved", "cancelled")).toBe(false); // no individual refunds
     expect(canTransition(BOOKING_TRANSITIONS, "rejected", "approved")).toBe(false);
     expect(() => assertBookingTransition("event_cancelled", "approved")).toThrow(TransitionError);

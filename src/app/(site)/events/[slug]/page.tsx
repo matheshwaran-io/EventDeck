@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Clock, DoorOpen, Lock, MapPin, Settings2, Timer, UsersRound } from "lucide-react";
+import { Building2, CalendarDays, Clock, DoorOpen, Lock, MapPin, Settings2, Timer, UsersRound } from "lucide-react";
 import { PosterArt } from "@/components/events/poster-art";
 import { TicketSelector } from "@/components/events/ticket-selector";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { categoryLabel, PARTICIPANT_CATEGORIES } from "@/lib/constants";
 import { formatDate, formatDateTime, formatPaise, formatRange, formatTime } from "@/lib/format";
 import { getEventForViewer } from "@/lib/server/events";
+import { checkEligibility, describeAudience } from "@/lib/domain/eligibility";
 import { participantCategory } from "@/db/schema";
 
 export async function generateMetadata({ params }: PageProps<"/events/[slug]">): Promise<Metadata> {
@@ -31,6 +32,8 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
   const { event, tiers, organizerName, canManage, heldByViewer } = data;
   const now = new Date();
   const allEligible = participantCategory.enumValues.every((c) => event.eligibleCategories.includes(c));
+  const audience = describeAudience(event);
+  const eligibility = user ? checkEligibility(event, user) : null;
   const eligibleLabels = PARTICIPANT_CATEGORIES.filter((c) => event.eligibleCategories.includes(c.value)).map((c) => c.label);
 
   const facts = [
@@ -39,7 +42,8 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
     { icon: MapPin, label: "Venue", value: event.venue },
     { icon: Timer, label: "Registration closes", value: formatDateTime(event.registrationClosesAt) },
     { icon: DoorOpen, label: "Check-in", value: `${formatDateTime(event.checkinOpensAt)} – ${formatTime(event.checkinClosesAt)}` },
-    { icon: UsersRound, label: "Open to", value: allEligible ? "Everyone" : eligibleLabels.join(", ") },
+    { icon: Building2, label: "Audience", value: audience.label },
+    { icon: UsersRound, label: "Open to", value: allEligible ? "Students, faculty, staff, alumni & guests" : eligibleLabels.join(", ") },
   ];
 
   return (
@@ -142,7 +146,8 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
               user
                 ? {
                     name: user.fullName,
-                    eligible: event.eligibleCategories.includes(user.category),
+                    eligible: Boolean(eligibility?.ok),
+                    ineligibleReason: eligibility && !eligibility.ok ? eligibility.reason : undefined,
                     held: heldByViewer,
                     isOwner: canManage,
                   }

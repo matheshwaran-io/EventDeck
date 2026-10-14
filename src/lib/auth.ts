@@ -41,8 +41,5 @@ export async function requireUser(roles?: Role[]): Promise<Profile> {
   return user;
 }
 
-export function homeFor(role: Role) {
-  if (role === "admin") return "/admin";
-  if (role === "organizer") return "/organizer";
-  return "/my/bookings";
-}
+// Pure helper (no database) — kept importable from here for existing callers.
+export { homeFor } from "./roles";

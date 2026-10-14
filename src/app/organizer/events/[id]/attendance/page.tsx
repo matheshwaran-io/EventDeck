@@ -58,7 +58,10 @@ export default async function AttendancePage({ params }: PageProps<"/organizer/e
                       {r.status !== "valid" ? (
                         <StatusBadge tone="danger">Invalidated</StatusBadge>
                       ) : r.checkedInAt ? (
-                        <StatusBadge tone="success">In · {formatTime(r.checkedInAt)}</StatusBadge>
+                        <span className="inline-flex flex-col items-end gap-0.5">
+                          <StatusBadge tone="success">In · {formatTime(r.checkedInAt)}</StatusBadge>
+                          {r.scannedBy && <span className="text-[0.6875rem] text-muted-foreground">by {r.scannedBy}</span>}
+                        </span>
                       ) : (
                         <StatusBadge tone="neutral">Not yet</StatusBadge>
                       )}

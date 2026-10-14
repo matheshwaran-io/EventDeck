@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { bookingItems, bookings, events, payments, refunds, webhookEvents, type Profile } from "@/db/schema";
 import { createRazorpayOrder, paymentMode } from "@/lib/razorpay";
 import { audit, notify, notifyAdmins } from "./audit";
-import { expireHolds, reserveInventory, transitionBooking } from "./bookings";
+import { expireHolds, issueTickets, reserveInventory, transitionBooking } from "./bookings";
 import { DomainError } from "./errors";
 
 export type CheckoutOrder = {
@@ -163,23 +163,33 @@ export async function confirmPayment(input: {
     };
 
     if (b.status === "awaiting_payment") {
-      await transitionBooking(tx, b.id, "awaiting_payment", "pending_verification", {
+      const row = await transitionBooking(tx, b.id, "awaiting_payment", "approved", {
         paymentStatus: "paid",
         expiresAt: null,
+        decidedAt: new Date(),
       });
       await markPaid();
+      const issued = await issueTickets(tx, row ?? b, event.title);
+      await audit(tx, {
+        actorId: b.userId,
+        action: "booking.approved",
+        entityType: "booking",
+        entityId: b.id,
+        eventId: b.eventId,
+        details: { reference: b.reference, kind: b.kind, ticketsIssued: issued, autoApproved: true },
+      });
       await notify(tx, [
         {
           userId: b.userId,
-          type: "payment.succeeded",
-          title: "Payment received",
-          body: `${event.title}: payment for ${b.reference} succeeded. The organizer will verify your booking shortly.`,
+          type: "booking.approved",
+          title: "Payment confirmed — tickets ready",
+          body: `${event.title}: payment for ${b.reference} succeeded. Your tickets are ready!`,
           href,
         },
         {
           userId: event.organizerId,
-          type: "booking.needs_review",
-          title: "Paid booking to verify",
+          type: "booking.created",
+          title: "New ticket booking",
           body: `${b.reference} · ${b.quantity} ticket(s) · ${event.title}`,
           href: `/organizer/events/${event.id}/bookings`,
         },
@@ -204,24 +214,34 @@ export async function confirmPayment(input: {
       if (recovered) {
         flag = "late_payment_recovered";
         outcome = "recovered_late";
-        await transitionBooking(tx, b.id, b.status, "pending_verification", {
+        const row = await transitionBooking(tx, b.id, b.status, "approved", {
           paymentStatus: "paid",
           expiresAt: null,
           cancelledAt: null,
+          decidedAt: new Date(),
         });
         await markPaid();
+        const issued = await issueTickets(tx, row ?? b, event.title);
+        await audit(tx, {
+          actorId: b.userId,
+          action: "booking.approved",
+          entityType: "booking",
+          entityId: b.id,
+          eventId: b.eventId,
+          details: { reference: b.reference, kind: b.kind, ticketsIssued: issued, autoApproved: true },
+        });
         await notify(tx, [
           {
             userId: b.userId,
-            type: "payment.succeeded",
-            title: "Payment received",
-            body: `Your payment for ${b.reference} arrived after the reservation lapsed, but seats were still available — it's now awaiting organizer verification.`,
+            type: "booking.approved",
+            title: "Payment confirmed — tickets ready",
+            body: `Your payment for ${b.reference} arrived after the reservation lapsed, but seats were still available — your tickets are confirmed!`,
             href,
           },
           {
             userId: event.organizerId,
-            type: "booking.needs_review",
-            title: "Paid booking to verify",
+            type: "booking.created",
+            title: "Late payment recovered",
             body: `${b.reference} · ${b.quantity} ticket(s) · ${event.title}`,
             href: `/organizer/events/${event.id}/bookings`,
           },

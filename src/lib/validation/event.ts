@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eventCategory, participantCategory } from "@/db/schema";
+import { campusEnum, eventCategory, institutionType, participantCategory } from "@/db/schema";
 
 const dt = z
   .string()
@@ -33,6 +33,15 @@ export const eventSchema = z
     maxTicketsPerBooking: z.coerce.number().int().min(1, "At least 1").max(10, "At most 10"),
     eligibleCategories: z.array(z.enum(participantCategory.enumValues)).min(1, "Choose at least one group"),
     allowPassRequests: z.boolean().default(false),
+    eligibleInstitutionTypes: z
+      .array(z.enum(institutionType.enumValues))
+      .min(1, "Choose at least one audience")
+      .default(["SRM", "EXTERNAL_INSTITUTION", "GUEST"]),
+    eligibleCampuses: z.array(z.enum(campusEnum.enumValues)).default(["KTR", "RAMAPURAM", "VADAPALANI", "OTHER_SRM"]),
+    eligibleInstitutions: z
+      .array(z.string().trim().min(2, "Institution names need 2+ characters").max(120))
+      .max(25, "Up to 25 approved institutions")
+      .default([]),
     tiers: z.array(tierSchema).min(1, "Add at least one ticket tier").max(8, "Up to 8 tiers"),
   })
   .superRefine((v, ctx) => {
@@ -41,6 +50,8 @@ export const eventSchema = z
       ctx.addIssue({ code: "custom", path: ["registrationClosesAt"], message: "Must close before the event ends" });
     if (v.checkinClosesAt <= v.checkinOpensAt)
       ctx.addIssue({ code: "custom", path: ["checkinClosesAt"], message: "Must be after check-in opens" });
+    if (v.eligibleInstitutionTypes.includes("SRM") && v.eligibleCampuses.length === 0)
+      ctx.addIssue({ code: "custom", path: ["eligibleCampuses"], message: "Choose at least one SRM campus" });
     const names = v.tiers.map((t) => t.name.trim().toLowerCase());
     names.forEach((n, i) => {
       if (names.indexOf(n) !== i) ctx.addIssue({ code: "custom", path: ["tiers", i, "name"], message: "Tier names must be unique" });

@@ -26,6 +26,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
   const venue = str(sp.venue);
   const available = sp.available === "1";
   const free = sp.free === "1";
+  const audience = sp.audience === "srm" || sp.audience === "intercollege" || sp.audience === "open" ? sp.audience : undefined;
   const when = sp.when === "past" ? "past" : "upcoming";
   const page = Number(str(sp.page) ?? 1) || 1;
 
@@ -39,6 +40,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
       venue,
       available,
       free,
+      audience,
       when,
       page,
     }),
@@ -46,7 +48,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
   ]);
 
   const params = new URLSearchParams();
-  Object.entries({ q, category, from, to, venue, available: available ? "1" : undefined, free: free ? "1" : undefined, when: when === "past" ? "past" : undefined }).forEach(
+  Object.entries({ q, category, from, to, venue, available: available ? "1" : undefined, free: free ? "1" : undefined, audience, when: when === "past" ? "past" : undefined }).forEach(
     ([k, v]) => v && params.set(k, v),
   );
   const pageHref = (p: number) => {

@@ -175,10 +175,40 @@ If the account doesn't exist it is created (email pre-confirmed). Without `ADMIN
 | `npm run lint` | ESLint (Next.js core-web-vitals + TypeScript) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:unit` | State machine, server pricing, QR tokens & scan parsing, CSV formula-injection guard, IST time handling, Zod schemas, Razorpay checkout/webhook signatures, live-key / production simulator guards, poster magic-byte sniffing |
-| `npm run test:integration` | Against the configured Supabase Postgres: 20 concurrent buyers for 5 seats (no oversell), idempotent submissions, limits / deadlines / eligibility, ten-minute expiry releasing once under concurrent sweeps, participant cancellation, checkout+webhook race, failure → retry, late-payment recovery vs. exception, organizer authorization, single ticket issuance, complimentary passes, check-in duplicates / wrong event / window, cancellation → invalidation → refunds, payment after cancellation → refund queued, webhook route (bad signature, dedupe) |
+| `npm run test:integration` | Against the Supabase **test** project (`.env.test`): 20 concurrent buyers for 5 seats (no oversell), idempotent submissions, limits / deadlines / eligibility, ten-minute expiry releasing once under concurrent sweeps, participant cancellation, checkout+webhook race, failure → retry, late-payment recovery vs. exception, organizer authorization, single ticket issuance, complimentary passes, check-in duplicates / wrong event / window, cancellation → invalidation → refunds, payment after cancellation → refund queued, webhook route (bad signature, dedupe) |
 | `npm run test:e2e` | Playwright (desktop + Pixel 7): discovery & search, unlisted/draft visibility, anonymous & role-based access (pages + APIs), signup → participant only, organizer application → admin approval, paid multi-ticket booking with decline + retry → approval → QR + PDF (and PDF denied to others), free registration rejection, hold cancellation releasing seats, event create/publish/edit/unpublish, scanner check-in + duplicate + invalid, admin cancellation → refund processing → audit + CSV, mobile layouts without horizontal scroll |
 
-Integration and E2E tests run against the configured Supabase database in `.env.local`; E2E also needs seeded demo accounts (`npm run db:seed`) and installs Chromium once with `npx playwright install chromium`.
+Unit tests need no database. **Integration and E2E tests run against a dedicated Supabase test project** configured in `.env.test` — never the project in `.env.local`, and never a local/Docker database:
+
+1. Create a second (free) Supabase project for testing. In it, turn **off** Authentication → Email → *Confirm email* (UI signup tests sign in immediately; no mail is sent).
+2. `cp .env.test.example .env.test` and fill in that project's URL, keys and session-pooler connection string.
+3. Prepare it once:
+
+```bash
+npm run test:db:migrate
+```
+
+```bash
+npm run test:db:seed
+```
+
+```bash
+npx playwright install chromium
+```
+
+`tests/env-guard.ts` refuses to run if `.env.test` is missing, if its database is not a Supabase host, or if it points at the primary project from `.env.local` (unless you explicitly set `ALLOW_TESTS_ON_PRIMARY_PROJECT=true` to accept isolated, self-cleaning test data there). E2E starts its own dev server on port 3100 (`NEXT_DIST_DIR=.next-e2e`) so it never shares your normal dev server, and its teardown deletes only rows it created.
+
+## QA
+
+The full QA plan, test cases, bug report and final report live in [`docs/`](docs/QA_FINAL_REPORT.md). Supabase PostgreSQL is the only database for development, tests, staging and production — no Docker or local PostgreSQL is used. With `.env.test` set up as described under [Testing](#testing):
+
+```bash
+npx vitest run
+```
+
+```bash
+npx playwright test
+```
 
 ## Known limitations
 

@@ -16,6 +16,7 @@ import { HOLD_MINUTES } from "@/lib/constants";
 import { priceOrder, PricingError, type LineRequest } from "@/lib/domain/pricing";
 import { bookingReference, eventCode, qrToken, ticketNumber } from "@/lib/domain/tokens";
 import { assertBookingTransition, INVENTORY_HOLDING } from "@/lib/domain/transitions";
+import { checkEligibility } from "@/lib/domain/eligibility";
 import { audit, notify, notifyAdmins } from "./audit";
 import { DomainError, pgErrorCode } from "./errors";
 
@@ -154,9 +155,9 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
       if (event.status === "cancelled") throw new DomainError("This event has been cancelled.", "closed");
       const now = new Date();
       if (now >= event.registrationClosesAt) throw new DomainError("Registration for this event has closed.", "closed");
-      if (!event.eligibleCategories.includes(user.category)) {
-        throw new DomainError("Your participant category isn't eligible for this event.", "forbidden");
-      }
+      // Audience rules (institution type, SRM campus, approved colleges, category) from the stored profile only.
+      const eligibility = checkEligibility(event, user);
+      if (!eligibility.ok) throw new DomainError(eligibility.reason, "forbidden");
       if (input.complimentary && !event.allowPassRequests) {
         throw new DomainError("This event doesn't accept complimentary pass requests.", "forbidden");
       }
@@ -195,6 +196,8 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
       const kind = input.complimentary ? "complimentary" : priced.amountPaise > 0 ? "paid" : "free";
       const amountPaise = kind === "paid" ? priced.amountPaise : 0;
       const isPaid = kind === "paid";
+      const isPass = kind === "complimentary";
+      const isFree = kind === "free";
 
       await reserveInventory(tx, event.id, priced.items);
 
@@ -205,7 +208,7 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
           eventId: event.id,
           userId: user.id,
           kind,
-          status: isPaid ? "awaiting_payment" : "pending_verification",
+          status: isPaid ? "awaiting_payment" : isPass ? "pending_verification" : "approved",
           paymentStatus: isPaid ? "pending" : "not_required",
           quantity: priced.quantity,
           amountPaise,
@@ -213,6 +216,7 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
           passReason: input.complimentary?.reason.trim() || null,
           expiresAt: isPaid ? new Date(now.getTime() + HOLD_MINUTES * 60_000) : null,
           idempotencyKey: input.idempotencyKey,
+          decidedAt: isFree ? new Date() : null,
         })
         .returning();
 
@@ -225,34 +229,49 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
         })),
       );
 
+      if (isFree) {
+        await issueTickets(tx, booking!, event.title);
+      }
+
       await audit(tx, {
         actorId: user.id,
-        action: "booking.created",
+        action: isFree ? "booking.approved" : "booking.created",
         entityType: "booking",
         entityId: booking!.id,
         eventId: event.id,
-        details: { reference: booking!.reference, kind, quantity: priced.quantity, amountPaise },
+        details: { reference: booking!.reference, kind, quantity: priced.quantity, amountPaise, autoApproved: isFree },
       });
 
       const href = `/my/bookings/${booking!.id}`;
       await notify(tx, {
         userId: user.id,
-        type: "booking.created",
+        type: isFree ? "booking.approved" : "booking.created",
         title: isPaid
           ? "Tickets reserved — complete payment"
-          : kind === "complimentary"
+          : isPass
             ? "Pass request submitted"
-            : "Registration submitted",
+            : "Registration confirmed — tickets ready",
         body: isPaid
           ? `${priced.quantity} ticket(s) for ${event.title} are held for ${HOLD_MINUTES} minutes.`
-          : `${event.title}: the organizer will review your ${kind === "complimentary" ? "pass request" : "registration"}.`,
+          : isPass
+            ? `${event.title}: the organizer will review your pass request.`
+            : `${event.title}: your ${priced.quantity} ticket(s) are ready!`,
         href,
       });
-      if (!isPaid) {
+
+      if (isPass) {
         await notify(tx, {
           userId: event.organizerId,
           type: "booking.needs_review",
-          title: kind === "complimentary" ? "New pass request" : "New registration to verify",
+          title: "New pass request",
+          body: `${user.fullName} · ${priced.quantity} ticket(s) · ${event.title}`,
+          href: `/organizer/events/${event.id}/bookings`,
+        });
+      } else if (isFree) {
+        await notify(tx, {
+          userId: event.organizerId,
+          type: "booking.created",
+          title: "New registration",
           body: `${user.fullName} · ${priced.quantity} ticket(s) · ${event.title}`,
           href: `/organizer/events/${event.id}/bookings`,
         });
@@ -429,7 +448,7 @@ export async function decideBooking(actor: Profile, bookingId: string, decision:
 }
 
 /** Issue one ticket per seat. Idempotent: (booking_id, seq) is unique. */
-async function issueTickets(tx: Tx, booking: Booking, eventTitle: string) {
+export async function issueTickets(tx: Tx, booking: Booking, eventTitle: string) {
   const items = await tx
     .select()
     .from(bookingItems)

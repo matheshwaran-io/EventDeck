@@ -22,6 +22,34 @@
       "when": 1791922880000,
       "tag": "0002_institution_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791952311856,
+      "tag": "0003_srm_email_gate",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791952364139,
+      "tag": "0004_moderators_and_audience",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791952377193,
+      "tag": "0005_moderators_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791967011325,
+      "tag": "0006_odd_maelstrom",
+      "breakpoints": true
     }
   ]
 }

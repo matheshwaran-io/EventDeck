@@ -9,7 +9,8 @@ const schema = z.object({ eventId: z.string().uuid(), code: z.string().min(1).ma
 
 export async function POST(request: Request) {
   try {
-    const user = await requireUser(["organizer", "admin"]);
+    // Any signed-in account; per-event scan rights (owner, admin, or assigned moderator) are checked in checkInTicket.
+    const user = await requireUser();
     const parsed = schema.safeParse(await readJson(request, 2048));
     if (!parsed.success) throw new DomainError("Invalid scan.");
     const result = await checkInTicket(user, parsed.data.eventId, parsed.data.code, parsed.data.method);

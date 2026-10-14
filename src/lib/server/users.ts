@@ -5,6 +5,7 @@ import { organizerApplications, profiles, type Profile, type Role } from "@/db/s
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { audit, notify, notifyAdmins } from "./audit";
 import { DomainError, pgErrorCode } from "./errors";
+import { isSrmEmail } from "@/lib/constants";
 
 export async function updateOwnProfile(
   user: Profile,
@@ -25,6 +26,13 @@ export async function updateOwnProfile(
   const instType = input.institutionType ?? user.institutionType ?? "SRM";
   const camp = instType === "SRM" ? (input.campus ?? user.campus ?? "KTR") : null;
   const affil = input.affiliation ?? user.affiliation ?? "STUDENT";
+  // QA-002: SRM students/staff must hold an official SRM email — same rule as signup.
+  if (instType === "SRM" && (affil === "STUDENT" || affil === "STAFF") && !isSrmEmail(user.email)) {
+    throw new DomainError(
+      "SRM students and staff need an official SRM email (@srmist.edu.in). Ask an administrator to update your account email, or choose your actual institution.",
+      "forbidden",
+    );
+  }
   const instName = instType === "SRM" ? "SRM University" : (input.institutionName ?? user.institutionName ?? null);
   const city = instType === "EXTERNAL_INSTITUTION" ? (input.city ?? user.city ?? null) : null;
   const dept = input.department ?? user.department ?? null;
