@@ -18,7 +18,10 @@ async function main() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const name = process.env.ADMIN_NAME?.trim() || "Administrator";
   if (!email) throw new Error("Set ADMIN_EMAIL");
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  if (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(`Set SUPABASE_SECRET_KEY in ${process.env.ENV_FILE ?? ".env.local"} (Project Settings → API Keys → Secret keys)`);
+  }
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 

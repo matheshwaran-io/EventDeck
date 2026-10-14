@@ -17,8 +17,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --conditions react-server scripts/seed.ts",
     "admin:create": "tsx --conditions react-server scripts/create-admin.ts",
-    "supabase:start": "supabase start -x edge-runtime,logflare,vector,supavisor,imgproxy",
-    "supabase:stop": "supabase stop"
+    "cloud:migrate": "ENV_FILE=.env.cloud drizzle-kit migrate",
+    "cloud:admin": "ENV_FILE=.env.cloud tsx --conditions react-server scripts/create-admin.ts",
+    "cloud:seed": "ENV_FILE=.env.cloud tsx --conditions react-server scripts/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

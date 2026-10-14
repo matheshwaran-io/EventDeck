@@ -19,11 +19,15 @@ import { requestCancellation } from "@/lib/server/cancellations";
 import { confirmPayment, createOrderForBooking } from "@/lib/server/payments";
 import { slugify } from "@/lib/domain/tokens";
 
+const envFile = process.env.ENV_FILE ?? ".env.local";
 const password = process.env.SEED_DEMO_PASSWORD;
-if (!password) throw new Error("Set SEED_DEMO_PASSWORD in .env.local");
+if (!password) throw new Error(`Set SEED_DEMO_PASSWORD in ${envFile}`);
+if (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error(`Set SUPABASE_SECRET_KEY in ${envFile} (Supabase dashboard → Project Settings → API Keys → Secret keys)`);
+}
 process.env.ALLOW_MOCK_PAYMENTS = "true";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

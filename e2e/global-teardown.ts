@@ -8,7 +8,7 @@ import postgres from "postgres";
  */
 export default async function globalTeardown() {
   config({ path: ".env.local" });
-  const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+  const sql = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
   try {
     await sql.begin(async (tx) => {
       const users = await tx`select id from profiles where email like 'e2e+%@eventdeck.test'`;

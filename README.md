@@ -70,37 +70,43 @@ Supabase Realtime / PostgREST            src/lib/server/*  ── all writes, tr
 
 ## Local development
 
-**Prerequisites:** Node.js 24+, npm, Docker Desktop (for the local Supabase stack).
+**Prerequisites:** Node.js 24+, npm, and an active hosted Supabase project. No local Docker or PostgreSQL installation is needed.
 
 ```bash
 npm install
 ```
 
-Start Supabase locally (Postgres, Auth, Storage, Realtime, Studio):
+1. **Configure Environment Variables**:
+   Copy `.env.example` to `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Fill in your hosted Supabase credentials from your Supabase Dashboard:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Project URL (`https://<project-ref>.supabase.co`)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`): Public API key
+   - `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`): Secret service role key
+   - `DATABASE_URL`: Transaction pooler URI (port 6543) for application queries
+   - `DIRECT_URL`: Direct connection URI (port 5432) for running DDL migrations
+   - Razorpay test keys or `ALLOW_MOCK_PAYMENTS=true` for local testing
 
-```bash
-npm run supabase:start
-```
+2. **Apply Database Migrations**:
+   Run Drizzle migrations against your hosted Supabase PostgreSQL database:
+   ```bash
+   npm run db:migrate
+   ```
 
-Create `.env.local` from `.env.example`, filling the Supabase values printed by `npx supabase status -o env` (`API_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `DB_URL`). Leave the Razorpay keys blank and set `ALLOW_MOCK_PAYMENTS=true` to use the payment simulator, and choose a `SEED_DEMO_PASSWORD`.
+3. **(Optional) Seed Demo Accounts & Data**:
+   Populate demo users and events:
+   ```bash
+   npm run db:seed
+   ```
 
-Apply migrations and load demo data:
+4. **Start the Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm run db:migrate
-```
-
-```bash
-npm run db:seed
-```
-
-Run the app:
-
-```bash
-npm run dev
-```
-
-Open http://localhost:3000. Supabase Studio is at http://127.0.0.1:54323 and the local mail catcher at http://127.0.0.1:54324.
+Open http://localhost:3000 in your browser. Hosted Supabase Studio is available directly in your Supabase web dashboard.
 
 > Camera access requires a secure context: `localhost` works; on a phone use the HTTPS Vercel deployment (or an HTTPS tunnel).
 
@@ -132,11 +138,11 @@ Refunds for cancelled events are submitted from **Admin → Refunds** to the Raz
 1. Create a project (free tier). Note the database password.
 2. **Authentication → Sign In / Providers → Email**: keep email/password enabled. For a quick demo you may turn **Confirm email** *off* (otherwise new users must click the emailed link, which lands on `/auth/confirm`). Authorization does not depend on this setting.
 3. **Authentication → URL Configuration**: set the Site URL to your deployed URL and add it to redirect URLs.
-4. **Project Settings → API**: copy the URL, anon key and service-role key. **Project Settings → Database → Connection string**: copy the *transaction pooler* URI for `DATABASE_URL` on Vercel.
-5. Run the migrations against the cloud database from your machine (a direct or session-pooler URI works best for DDL):
+4. **Project Settings → API**: copy the URL, anon key and service-role key. **Project Settings → Database → Connection string**: copy the *transaction pooler* URI for `DATABASE_URL` (port 6543) and direct connection URI for `DIRECT_URL` (port 5432).
+5. Run the migrations against the cloud database from your machine:
 
    ```bash
-   DATABASE_URL="postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres" npm run db:migrate
+   npm run db:migrate
    ```
 
    The migrations create all tables, constraints, indexes, the signup trigger, RLS policies, the Realtime publication for `notifications` + `bookings`, and the `posters` (public) / `tickets` (private) Storage buckets.
@@ -169,10 +175,10 @@ If the account doesn't exist it is created (email pre-confirmed). Without `ADMIN
 | `npm run lint` | ESLint (Next.js core-web-vitals + TypeScript) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:unit` | State machine, server pricing, QR tokens & scan parsing, CSV formula-injection guard, IST time handling, Zod schemas, Razorpay checkout/webhook signatures, live-key / production simulator guards, poster magic-byte sniffing |
-| `npm run test:integration` | Against the local Supabase Postgres: 20 concurrent buyers for 5 seats (no oversell), idempotent submissions, limits / deadlines / eligibility, ten-minute expiry releasing once under concurrent sweeps, participant cancellation, checkout+webhook race, failure → retry, late-payment recovery vs. exception, organizer authorization, single ticket issuance, complimentary passes, check-in duplicates / wrong event / window, cancellation → invalidation → refunds, payment after cancellation → refund queued, webhook route (bad signature, dedupe) |
+| `npm run test:integration` | Against the configured Supabase Postgres: 20 concurrent buyers for 5 seats (no oversell), idempotent submissions, limits / deadlines / eligibility, ten-minute expiry releasing once under concurrent sweeps, participant cancellation, checkout+webhook race, failure → retry, late-payment recovery vs. exception, organizer authorization, single ticket issuance, complimentary passes, check-in duplicates / wrong event / window, cancellation → invalidation → refunds, payment after cancellation → refund queued, webhook route (bad signature, dedupe) |
 | `npm run test:e2e` | Playwright (desktop + Pixel 7): discovery & search, unlisted/draft visibility, anonymous & role-based access (pages + APIs), signup → participant only, organizer application → admin approval, paid multi-ticket booking with decline + retry → approval → QR + PDF (and PDF denied to others), free registration rejection, hold cancellation releasing seats, event create/publish/edit/unpublish, scanner check-in + duplicate + invalid, admin cancellation → refund processing → audit + CSV, mobile layouts without horizontal scroll |
 
-Integration and E2E tests need the local Supabase stack running and `.env.local` configured; E2E also needs seeded demo accounts (`npm run db:seed`) and installs Chromium once with `npx playwright install chromium`.
+Integration and E2E tests run against the configured Supabase database in `.env.local`; E2E also needs seeded demo accounts (`npm run db:seed`) and installs Chromium once with `npx playwright install chromium`.
 
 ## Known limitations
 

@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 import postgres from "postgres";
 
 export const PASSWORD = process.env.SEED_DEMO_PASSWORD!;
-export const sql = postgres(process.env.DATABASE_URL!, { max: 2, idle_timeout: 5 });
+export const sql = postgres(process.env.DATABASE_URL!, { max: 2, idle_timeout: 5, prepare: false });
 
 export async function signIn(page: Page, email: string, next = "/") {
   await page.context().clearCookies();
