@@ -1,0 +1,73 @@
+
+ RUN  v5.0.4 /Users/maddy/Current Project/EventDeck
+
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > open events accept every audience 1ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > campus-only events accept only that campus 0ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > inter-campus events accept only the selected campuses 0ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > inter-college events accept only approved institutions (normalised names) 0ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > category rules still apply on top of institution rules 0ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > labels audiences accurately 0ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > parses approved-institution lists and normalises names 0ms
+ ✓ |unit| tests/unit/eligibility.test.ts > event audience eligibility > booking requests cannot smuggle profile fields past validation 1ms
+ ✓ |unit| tests/unit/eligibility.test.ts > platform limit: 4 tickets per person > event validation refuses a per-person limit above 4 181ms
+ ✓ |unit| tests/unit/domain.test.ts > booking state machine > allows only the documented transitions 1ms
+ ✓ |unit| tests/unit/domain.test.ts > booking state machine > terminal states have no exits 0ms
+ ✓ |unit| tests/unit/domain.test.ts > booking state machine > tickets are valid only when every gate passes 0ms
+ ✓ |unit| tests/unit/domain.test.ts > server-side pricing > prices from database rows and merges duplicate lines 0ms
+ ✓ |unit| tests/unit/domain.test.ts > server-side pricing > rejects empty, oversized, negative, fractional and unknown lines 0ms
+ ✓ |unit| tests/unit/domain.test.ts > tickets & QR > generates unguessable, unique tokens 2ms
+ ✓ |unit| tests/unit/domain.test.ts > tickets & QR > parses QR payloads, raw tokens and typed ticket numbers; rejects junk 0ms
+ ✓ |unit| tests/unit/domain.test.ts > tickets & QR > derives readable event codes and unique slugs 0ms
+ ✓ |unit| tests/unit/domain.test.ts > CSV export safety > neutralises spreadsheet formulas and quotes properly 0ms
+ ✓ |unit| tests/unit/domain.test.ts > campus time & money formatting > round-trips datetime-local values in IST 1ms
+ ✓ |unit| tests/unit/domain.test.ts > campus time & money formatting > formats paise as rupees 0ms
+ ✓ |unit| tests/unit/domain.test.ts > validation schemas > accepts a well-formed event and coerces numbers 1ms
+ ✓ |unit| tests/unit/domain.test.ts > validation schemas > enforces time ordering, unique tier names and price precision 0ms
+ ✓ |unit| tests/unit/domain.test.ts > validation schemas > signup never accepts a role and requires a reasonable password 1ms
+ ✓ |unit| tests/unit/domain.test.ts > validation schemas > enforces SRM organization email for host students and allows personal email for external students 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates SRM KTR student registration (requires SRM email & KTR campus) 2ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates SRM KTR faculty registration (allows SRM or personal email) 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates SRM Ramapuram student registration 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates SRM Vadapalani staff registration (requires official email) 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates Other SRM Campus alumni registration (allows personal email) 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates External college student registration (allows personal email, requires college & city) 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates External college faculty registration 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates External staff registration 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > validates Guest registration (no college name, campus, or university email required) 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > rejects mismatched passwords during registration 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Participant Registration Validation > never accepts client-submitted application role during registration 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Common Login Validation > requires valid email and non-empty password 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Common Login Validation > normalizes login email to lowercase 0ms
+ ✓ |unit| tests/unit/auth-onboarding.test.ts > Role-Based Authorization & Dashboard Routing > maps the three application roles to the correct dashboards 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > payoutAccountSchema > validates a valid Indian bank account 1ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > payoutAccountSchema > rejects mismatched account numbers 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > payoutAccountSchema > rejects invalid IFSC formats 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > payoutAccountSchema > validates a valid UPI ID 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > payoutAccountSchema > rejects invalid UPI IDs 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > requestPayoutSchema > accepts valid payout request for an event 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > requestPayoutSchema > rejects payout below minimum threshold or non-uuid event 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > processPayoutSchema > approves payout with UTR number 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > processPayoutSchema > requires valid uuid for payoutId 0ms
+ ✓ |unit| tests/unit/payouts.test.ts > payout validation schemas > fee calculations > computes 5% platform fee correctly 0ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > always uses permanent production URL on Vercel production deployment 1ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > uses permanent production URL when NEXT_PUBLIC_VERCEL_ENV is production 0ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > normalizes temporary .vercel.app URLs to production URL in NODE_ENV=production 0ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > respects custom non-vercel production domain when NODE_ENV=production 0ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > respects local development URL and trims trailing slashes 0ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > falls back to localhost:3000 when no environment variables are set in development 0ms
+ ✓ |unit| tests/unit/url.test.ts > URL resolution and auth redirect helper > formats VERCEL_URL properly for preview deployments when outside production 0ms
+ ✓ |unit| tests/unit/url.test.ts > safeRedirectPath (post-login and email-confirmation redirects) > keeps same-origin paths with query and hash 0ms
+ ✓ |unit| tests/unit/url.test.ts > safeRedirectPath (post-login and email-confirmation redirects) > rejects empty, relative and absolute URLs 0ms
+ ✓ |unit| tests/unit/url.test.ts > safeRedirectPath (post-login and email-confirmation redirects) > rejects protocol-relative and backslash forms that resolve to another host 0ms
+ ✓ |unit| tests/unit/security.test.ts > Razorpay signature verification > accepts a correct checkout signature and rejects tampering 1ms
+ ✓ |unit| tests/unit/security.test.ts > Razorpay signature verification > verifies webhooks against the exact raw body 0ms
+ ✓ |unit| tests/unit/security.test.ts > payment mode guard > never runs live keys and never runs the simulator in production 0ms
+ ✓ |unit| tests/unit/security.test.ts > poster upload type sniffing > trusts magic bytes, not file names 0ms
+ ✓ |unit| tests/unit/security.test.ts > Root Admin permanent protection > recognizes eventdeck88@gmail.com as root admin regardless of casing or whitespace 0ms
+
+ Test Files  6 passed (6)
+      Tests  63 passed (63)
+   Start at  15:26:54
+   Duration  1.02s (import 68%, tests 28%, transform 3%, worker 1%)
+
+EXIT 0

@@ -1,0 +1,84 @@
+
+> eventdeck@0.1.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 69ms
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.7s
+  Running TypeScript ...
+
+  We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+  	- include was updated to add '.next-build/types/**/*.ts'
+  	- include was updated to add '.next-build/dev/types/**/*.ts'
+
+  Finished TypeScript in 3.9s ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/35) ...
+  Generating static pages using 9 workers (8/35) 
+  Generating static pages using 9 workers (17/35) 
+  Generating static pages using 9 workers (26/35) 
+✓ Generating static pages using 9 workers (35/35) in 167ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /admin
+├ ƒ /admin/audit
+├ ƒ /admin/cancellations
+├ ƒ /admin/events
+├ ƒ /admin/exceptions
+├ ƒ /admin/payouts
+├ ƒ /admin/refunds
+├ ƒ /admin/reports
+├ ƒ /admin/users
+├ ƒ /api/checkin
+├ ƒ /api/cron/expire-holds
+├ ƒ /api/payments/failed
+├ ƒ /api/payments/mock
+├ ƒ /api/payments/order
+├ ƒ /api/payments/verify
+├ ƒ /api/reports/[type]
+├ ƒ /api/tickets/[bookingId]/pdf
+├ ƒ /api/webhooks/razorpay
+├ ƒ /auth/confirm
+├ ƒ /events
+├ ƒ /events/[slug]
+├ ƒ /forbidden
+├ ƒ /forgot-password
+├ ○ /icon.svg
+├ ƒ /login
+├ ƒ /moderate
+├ ƒ /moderate/[eventId]
+├ ƒ /my/bookings
+├ ƒ /my/bookings/[id]
+├ ƒ /my/notifications
+├ ƒ /my/profile
+├ ƒ /organizer
+├ ƒ /organizer/events
+├ ƒ /organizer/events/[id]
+├ ƒ /organizer/events/[id]/activity
+├ ƒ /organizer/events/[id]/attendance
+├ ƒ /organizer/events/[id]/bookings
+├ ƒ /organizer/events/[id]/edit
+├ ƒ /organizer/events/[id]/scan
+├ ƒ /organizer/events/[id]/team
+├ ƒ /organizer/events/new
+├ ƒ /organizer/payouts
+├ ƒ /reset-password
+└ ƒ /signup
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT 0

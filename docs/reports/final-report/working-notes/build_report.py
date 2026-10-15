@@ -19,7 +19,10 @@ from xml.sax.saxutils import escape
 from lxml import etree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import report_content as C  # noqa: E402
+import importlib  # noqa: E402
+
+# REPORT_CONTENT selects the content module (default: the original report_content.py).
+C = importlib.import_module(os.environ.get("REPORT_CONTENT", "report_content"))
 
 REF, OUT = sys.argv[1], sys.argv[2]
 ASSETS = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
@@ -284,6 +287,15 @@ set_text(front[0], C.TITLE, size=32)
 bona = front[19]
 title_run = [r for r in bona.findall("w:r", NS) if r.find("w:rPr/w:b", NS) is not None][0]
 title_run.find("w:t", NS).text = C.TITLE
+
+# Optional replacement acknowledgement: keeps each template paragraph's properties, swaps the runs.
+if getattr(C, "ACKNOWLEDGEMENT", None):
+    ack_paras = front[32:38]
+    assert len(C.ACKNOWLEDGEMENT) == len(ack_paras) == 6
+    for p, text in zip(ack_paras, C.ACKNOWLEDGEMENT):
+        for r in p.findall("w:r", NS):
+            p.remove(r)
+        p.extend(frag(f"<w:p>{runs(text)}</w:p>")[0].findall("w:r", NS))
 
 toc_list = [({1: "TOC1", 2: "TOC2", 3: "TOC3"}[lvl], text, anchor) for lvl, text, anchor in toc_entries]
 new_children = (

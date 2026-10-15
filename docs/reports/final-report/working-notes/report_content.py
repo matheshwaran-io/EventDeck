@@ -11,6 +11,10 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# Repository root: the nearest parent folder containing package.json (works wherever the report folder lives).
+REPO = HERE
+while not os.path.exists(os.path.join(REPO, "package.json")):
+    REPO = os.path.dirname(REPO)
 
 TITLE = "EVENTDECK: A UNIVERSITY EVENT TICKETING SYSTEM WITH TRANSACTIONAL SEAT RESERVATION AND QR CHECK-IN"
 
@@ -959,7 +963,7 @@ BODY = [
         "}",
     ]),
     ("h3", "11.1.2 src/lib/domain/eligibility.ts — the audience rule"),
-    ("code", open(os.path.join(HERE, "..", "..", "..", "src", "lib", "domain", "eligibility.ts"), encoding="utf-8").read()
+    ("code", open(os.path.join(REPO, "src", "lib", "domain", "eligibility.ts"), encoding="utf-8").read()
         .split("/**\n * Server-authoritative")[1].split("\nfunction campusList")[0].join(["/**\n * Server-authoritative", ""]).rstrip().splitlines()),
     ("h3", "11.1.3 src/lib/server/checkin.ts — recording a check-in exactly once"),
     ("code", [

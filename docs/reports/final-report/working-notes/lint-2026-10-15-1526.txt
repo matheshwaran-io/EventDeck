@@ -1,0 +1,50 @@
+
+> eventdeck@0.1.0 lint
+> eslint
+
+
+/Users/maddy/Current Project/EventDeck/src/components/auth/signup-form.tsx
+  67:22  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/maddy/Current Project/EventDeck/src/components/auth/signup-form.tsx:67:22
+  65 |   });
+  66 |
+> 67 |   const formValues = watch();
+     |                      ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  68 |   const currentInstitutionType = formValues.institutionType ?? "SRM";
+  69 |   const currentAffiliation = formValues.affiliation ?? "STUDENT";
+  70 |   const currentCampus = formValues.campus ?? "KTR";  react-hooks/incompatible-library
+
+/Users/maddy/Current Project/EventDeck/src/components/organizer/event-form.tsx
+  74:20  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/maddy/Current Project/EventDeck/src/components/organizer/event-form.tsx:74:20
+  72 |   const tiers = useFieldArray({ control, name: "tiers" });
+  73 |   const e = formState.errors;
+> 74 |   const eligible = watch("eligibleCategories") ?? [];
+     |                    ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  75 |   const instTypes = watch("eligibleInstitutionTypes") ?? [];
+  76 |   const campuses = watch("eligibleCampuses") ?? [];
+  77 |   const [institutionsText, setInstitutionsText] = useState((defaults.eligibleInstitutions ?? []).join("\n"));  react-hooks/incompatible-library
+
+/Users/maddy/Current Project/EventDeck/src/components/profile/profile-forms.tsx
+  31:20  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/maddy/Current Project/EventDeck/src/components/profile/profile-forms.tsx:31:20
+  29 |   });
+  30 |   const e = formState.errors;
+> 31 |   const instType = watch("institutionType") ?? "SRM";
+     |                    ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  32 |
+  33 |   const onSubmit = handleSubmit((values) =>
+  34 |     start(async () => {  react-hooks/incompatible-library
+
+✖ 3 problems (0 errors, 3 warnings)
+
+EXIT 0
