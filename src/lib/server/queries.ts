@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
@@ -208,7 +209,8 @@ export async function auditTrail(params: { eventId?: string; eventIds?: string[]
  * Admin
  * ------------------------------------------------------------------------- */
 
-export async function adminMetrics() {
+/** Platform counters for the admin shell and overview. Memoised per request: the layout and page both need them. */
+export const adminMetrics = cache(async () => {
   const now = new Date();
   const [[users], [ev], [bk], [pay], [att], [ref], [pendingApps], [pendingCancels], [exceptions], [pendingPayouts]] = await Promise.all([
     db
@@ -268,7 +270,7 @@ export async function adminMetrics() {
     openExceptions: exceptions!.n,
     pendingPayouts: pendingPayouts!.n,
   };
-}
+});
 
 export async function salesByDay(days = 14) {
   const since = new Date(Date.now() - days * 86400_000);

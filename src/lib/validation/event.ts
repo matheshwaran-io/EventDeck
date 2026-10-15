@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_TICKETS_PER_PERSON } from "@/lib/constants";
 import { campusEnum, eventCategory, institutionType, participantCategory } from "@/db/schema";
 
 const dt = z
@@ -30,7 +31,7 @@ export const eventSchema = z
     checkinOpensAt: dt,
     checkinClosesAt: dt,
     visibility: z.enum(["public", "unlisted"]),
-    maxTicketsPerBooking: z.coerce.number().int().min(1, "At least 1").max(10, "At most 10"),
+    maxTicketsPerBooking: z.coerce.number().int().min(1, "At least 1").max(MAX_TICKETS_PER_PERSON, `Up to ${MAX_TICKETS_PER_PERSON} tickets per person`),
     eligibleCategories: z.array(z.enum(participantCategory.enumValues)).min(1, "Choose at least one group"),
     allowPassRequests: z.boolean().default(false),
     eligibleInstitutionTypes: z

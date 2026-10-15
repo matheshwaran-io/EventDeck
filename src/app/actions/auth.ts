@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, homeFor } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isSrmEmail } from "@/lib/constants";
+import { isSrmEmail, getAuthRedirectUrl, isRootAdmin } from "@/lib/constants";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -15,13 +15,10 @@ import {
   type SignupInput,
 } from "@/lib/validation/auth";
 import type { ActionResult } from "@/lib/server/errors";
+import { safeRedirectPath } from "@/lib/url";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
-
-function safeNext(next: string | undefined | null) {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : null;
-}
 
 export async function signIn(input: LoginInput, next?: string): Promise<ActionResult<{ redirectTo: string }>> {
   const parsed = loginSchema.safeParse(input);
@@ -36,11 +33,13 @@ export async function signIn(input: LoginInput, next?: string): Promise<ActionRe
     return { ok: false, error: "Incorrect email or password." };
   }
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, data.user.id)).limit(1);
-  if (!profile?.isActive) {
+  const isRoot = isRootAdmin(profile?.email) || isRootAdmin(data.user.email);
+  if (!isRoot && !profile?.isActive) {
     await supabase.auth.signOut();
     return { ok: false, error: "This account has been deactivated. Contact an administrator." };
   }
-  return { ok: true, data: { redirectTo: safeNext(next) ?? homeFor(profile.role) } };
+  const effectiveRole = isRoot ? "admin" : (profile?.role ?? "participant");
+  return { ok: true, data: { redirectTo: safeRedirectPath(next) ?? homeFor(effectiveRole) } };
 }
 
 export async function signUp(input: SignupInput): Promise<ActionResult<{ redirectTo?: string; needsConfirmation?: boolean }>> {
@@ -139,7 +138,7 @@ export async function signUp(input: SignupInput): Promise<ActionResult<{ redirec
         category: legacyCategory,
         institution: formattedInstitution,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/auth/confirm`,
+      emailRedirectTo: getAuthRedirectUrl("/auth/confirm"),
     },
   });
   if (error) {
@@ -167,9 +166,8 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Enter a valid email address." };
   const supabase = await createSupabaseServerClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${appUrl}/auth/confirm?next=/reset-password`,
+    redirectTo: getAuthRedirectUrl("/auth/confirm?next=/reset-password"),
   });
   if (error) {
     if (/rate|too many/i.test(error.message)) {
@@ -192,5 +190,7 @@ export async function resetPassword(input: ResetPasswordInput): Promise<ActionRe
     return { ok: false, error: error?.message ?? "Could not update password. Your reset link may have expired." };
   }
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, data.user.id)).limit(1);
-  return { ok: true, data: { redirectTo: profile ? homeFor(profile.role) : "/events" } };
+  const isRoot = isRootAdmin(profile?.email) || isRootAdmin(data.user.email);
+  const effectiveRole = isRoot ? "admin" : (profile?.role ?? "participant");
+  return { ok: true, data: { redirectTo: profile || isRoot ? homeFor(effectiveRole) : "/events" } };
 }

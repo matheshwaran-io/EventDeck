@@ -15,7 +15,7 @@ afterAll(cleanup);
 
 /** An approved free booking with `qty` valid tickets on an event whose check-in window is open. */
 async function ticketsFor(org: Awaited<ReturnType<typeof makeUser>>, qty: number) {
-  const { event, tiers } = await makeEvent(org, { tiers: [{ name: "Entry", pricePaise: 0, capacity: 50 }], maxPerBooking: 10 });
+  const { event, tiers } = await makeEvent(org, { tiers: [{ name: "Entry", pricePaise: 0, capacity: 50 }], maxPerBooking: 4 });
   const buyer = await makeUser();
   const b = await createBooking(buyer, { eventId: event.id, lines: [{ tierId: tiers[0]!.id, quantity: qty }], attendeeNames: [], idempotencyKey: key() });
   await decideBooking(org, b.id, "approve");

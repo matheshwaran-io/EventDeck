@@ -103,6 +103,7 @@ export default async function MyBookingsPage({ searchParams }: PageProps<"/my/bo
                   posterPath={event.posterPath}
                   seed={event.slug}
                   size="thumb"
+                  fit="cover"
                   className="size-20 shrink-0 rounded-lg sm:size-24"
                 />
                 <div className="min-w-0 flex-1">

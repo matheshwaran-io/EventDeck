@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { eventSlug, signIn, signUp, sql } from "./helpers";
 
 
-test("paid multi-ticket booking → simulated payment → organizer approval → QR tickets + PDF", async ({ page }) => {
-  const email = await signUp(page);
+test("paid multi-ticket booking → simulated payment → QR tickets + PDF", async ({ page }) => {
+  await signUp(page);
   const ev = await eventSlug("Football Cup");
   await page.goto(`/events/${ev.slug}`);
   await page.getByRole("button", { name: "Add one Stands" }).click();
@@ -22,16 +22,9 @@ test("paid multi-ticket booking → simulated payment → organizer approval →
   await expect(page.getByText(/last payment attempt didn/)).toBeVisible();
   await page.getByRole("button", { name: "Pay ₹247" }).click();
   await page.getByRole("button", { name: "Simulate success" }).click();
-  await expect(page.getByText("Waiting for organizer verification")).toBeVisible();
-  expect((await page.request.get(`/api/tickets/${bookingId}/pdf`)).status()).toBe(409); // not valid yet
-
-  const [{ reference }] = await sql`select reference from bookings where id = ${bookingId}`;
-  await signIn(page, "cultural@eventdeck.test", `/organizer/events/${ev.id}/bookings`);
-  const row = page.locator("li", { hasText: reference as string });
-  await row.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByText(`${reference}: Approved — tickets issued.`)).toBeVisible();
-
-  await signIn(page, email, `/my/bookings/${bookingId}`);
+  // A verified payment approves the booking and issues tickets immediately.
+  await expect.poll(async () => (await sql`select status from bookings where id = ${bookingId}`)[0]?.status).toBe("approved");
+  await page.goto(`/my/bookings/${bookingId}`);
   await expect(page.getByRole("img", { name: /QR code for ticket/ })).toHaveCount(3);
   const pdf = await page.request.get(`/api/tickets/${bookingId}/pdf`);
   expect(pdf.status()).toBe(200);

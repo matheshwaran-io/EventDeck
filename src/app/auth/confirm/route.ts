@@ -1,6 +1,8 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/constants";
+import { safeRedirectPath } from "@/lib/url";
 
 /** Email confirmation landing (used when "Confirm email" is enabled in Supabase Auth). */
 export async function GET(request: NextRequest) {
@@ -10,11 +12,12 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get("code");
   const nextParam = url.searchParams.get("next");
   const fallback = type === "recovery" ? "/reset-password" : "/events";
-  const next = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : fallback;
+  const next = safeRedirectPath(nextParam) ?? fallback;
 
   const supabase = await createSupabaseServerClient();
   let ok = false;
   if (tokenHash && type) ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
   else if (code) ok = !(await supabase.auth.exchangeCodeForSession(code)).error;
-  return NextResponse.redirect(new URL(ok ? next : `/login?error=${type === "recovery" ? "recovery" : "confirmation"}`, url.origin));
+  const baseUrl = process.env.VERCEL_ENV === "production" ? getAppUrl() : url.origin;
+  return NextResponse.redirect(new URL(ok ? next : `/login?error=${type === "recovery" ? "recovery" : "confirmation"}`, baseUrl));
 }

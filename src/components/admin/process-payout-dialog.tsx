@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowUpRight, Building2, CheckCircle2, Loader2, Send, Smartphone, XCircle } from "lucide-react";
+import { Building2, Loader2, Send, Smartphone, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { processPayoutAction } from "@/app/actions/payouts";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,8 @@ export function ProcessPayoutDialog({
   const [pending, startTransition] = useTransition();
 
   const [utr, setUtr] = useState(
-    payout.utr ||
+    () =>
+      payout.utr ||
       `CMS${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 899 + 100)}`,
   );
   const [notes, setNotes] = useState(payout.notes || "");

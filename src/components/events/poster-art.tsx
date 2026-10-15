@@ -70,6 +70,7 @@ export function PosterArt({
   className,
   size = "card",
   priority,
+  fit = "contain",
 }: {
   title: string;
   category: EventCategory;
@@ -79,18 +80,32 @@ export function PosterArt({
   className?: string;
   size?: "card" | "hero" | "thumb";
   priority?: boolean;
+  /** Uploaded posters: "contain" shows the whole artwork (default); "cover" fills tiny thumbnails. */
+  fit?: "contain" | "cover";
 }) {
   const url = posterUrl(posterPath);
   if (url) {
+    // District-style poster stage: the whole poster is always visible (never cropped);
+    // a blurred, darkened copy of itself fills any leftover space.
     return (
-      <div className={cn("relative overflow-hidden bg-secondary", className)}>
+      <div className={cn("relative isolate overflow-hidden bg-foreground", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- decorative backdrop of the same poster */}
+        <img
+          src={url}
+          alt=""
+          aria-hidden
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+          className="absolute inset-0 -z-10 size-full scale-125 object-cover opacity-70 blur-2xl saturate-150"
+        />
+        <div className="absolute inset-0 -z-10 bg-black/25" aria-hidden />
         {/* eslint-disable-next-line @next/next/no-img-element -- compressed WebP from storage */}
         <img
           src={url}
           alt={`Poster for ${title}`}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
-          className="absolute inset-0 size-full object-cover"
+          className={cn("absolute inset-0 size-full object-contain", fit === "cover" && "object-cover")}
         />
       </div>
     );

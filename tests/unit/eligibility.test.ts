@@ -82,3 +82,30 @@ describe("event audience eligibility", () => {
     expect(parsed).not.toHaveProperty("userId");
   });
 });
+
+describe("platform limit: 4 tickets per person", () => {
+  it("event validation refuses a per-person limit above 4", async () => {
+    const { eventSchema } = await import("@/lib/validation/event");
+    const { MAX_TICKETS_PER_PERSON } = await import("@/lib/constants");
+    expect(MAX_TICKETS_PER_PERSON).toBe(4);
+    const base = {
+      title: "Limit test",
+      summary: "A sufficiently long summary",
+      description: "",
+      category: "cultural",
+      venue: "Hall A",
+      startAt: "2030-01-10T10:00",
+      endAt: "2030-01-10T12:00",
+      registrationClosesAt: "2030-01-10T08:00",
+      checkinOpensAt: "2030-01-10T09:00",
+      checkinClosesAt: "2030-01-10T12:00",
+      visibility: "public",
+      eligibleCategories: ["host_student"],
+      tiers: [{ name: "Entry", priceRupees: 0, capacity: 10 }],
+    };
+    expect(eventSchema.safeParse({ ...base, maxTicketsPerBooking: 4 }).success).toBe(true);
+    const five = eventSchema.safeParse({ ...base, maxTicketsPerBooking: 5 });
+    expect(five.success).toBe(false);
+    expect(five.error?.issues[0]?.message).toBe("Up to 4 tickets per person");
+  });
+});

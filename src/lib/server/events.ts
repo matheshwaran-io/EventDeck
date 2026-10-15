@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, notInArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, ne, notInArray, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   bookings,
@@ -14,6 +14,7 @@ import {
   type TicketTier,
 } from "@/db/schema";
 import { fromLocalInput } from "@/lib/format";
+import { MAX_TICKETS_PER_PERSON } from "@/lib/constants";
 import { slugify } from "@/lib/domain/tokens";
 import { INVENTORY_HOLDING } from "@/lib/domain/transitions";
 import type { EventParsed } from "@/lib/validation/event";
@@ -119,14 +120,21 @@ export async function searchEvents(params: SearchParams) {
   return { items: rows.map(toCard), total, page, pageSize, pages: Math.max(1, Math.ceil(total / pageSize)) };
 }
 
-export async function featuredEvents(limit = 6) {
+export async function featuredEvents(limit = 6, opts: { withPoster?: boolean } = {}) {
   await expireHolds();
   const now = new Date();
   const rows = await db
     .select({ event: events, ...cardColumns })
     .from(events)
     .innerJoin(profiles, eq(profiles.id, events.organizerId))
-    .where(and(eq(events.visibility, "public"), eq(events.status, "published"), gte(events.endAt, now)))
+    .where(
+      and(
+        eq(events.visibility, "public"),
+        eq(events.status, "published"),
+        gte(events.endAt, now),
+        opts.withPoster ? isNotNull(events.posterPath) : undefined,
+      ),
+    )
     .orderBy(asc(events.startAt))
     .limit(limit);
   return rows.map(toCard);
@@ -200,7 +208,7 @@ function eventValues(input: EventParsed) {
     checkinOpensAt: fromLocalInput(input.checkinOpensAt),
     checkinClosesAt: fromLocalInput(input.checkinClosesAt),
     visibility: input.visibility,
-    maxTicketsPerBooking: input.maxTicketsPerBooking,
+    maxTicketsPerBooking: Math.min(input.maxTicketsPerBooking, MAX_TICKETS_PER_PERSON),
     eligibleCategories: input.eligibleCategories,
     allowPassRequests: input.allowPassRequests,
     eligibleInstitutionTypes: input.eligibleInstitutionTypes,

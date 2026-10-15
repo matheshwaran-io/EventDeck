@@ -14,9 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { initials } from "@/lib/format";
+import { isRootAdmin } from "@/lib/constants";
 import { roleLabel } from "./nav-links";
 
 export function UserMenu({ user }: { user: { name: string; email: string; role: Role } }) {
+  const isRoot = isRootAdmin(user.email);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -30,7 +32,7 @@ export function UserMenu({ user }: { user: { name: string; email: string; role: 
           <DropdownMenuLabel className="py-2">
             <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
             <p className="truncate text-xs font-normal text-muted-foreground">{user.email}</p>
-            <p className="eyebrow mt-1.5 text-[0.625rem]">{roleLabel[user.role]}</p>
+            <p className="eyebrow mt-1.5 text-[0.625rem]">{isRoot ? "Root Administrator" : roleLabel[user.role]}</p>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

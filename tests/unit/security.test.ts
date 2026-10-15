@@ -52,3 +52,19 @@ describe("poster upload type sniffing", () => {
     expect(sniffImageType(new TextEncoder().encode("GIF89a"))).toBeNull();
   });
 });
+
+describe("Root Admin permanent protection", () => {
+  it("recognizes eventdeck88@gmail.com as root admin regardless of casing or whitespace", async () => {
+    const { isRootAdmin, ROOT_ADMIN_EMAIL } = await import("@/lib/constants");
+    expect(ROOT_ADMIN_EMAIL).toBe("eventdeck88@gmail.com");
+    expect(isRootAdmin("eventdeck88@gmail.com")).toBe(true);
+    expect(isRootAdmin("EVENTDECK88@GMAIL.COM")).toBe(true);
+    expect(isRootAdmin("  eventdeck88@gmail.com  ")).toBe(true);
+    expect(isRootAdmin("eventdeck88@srmist.edu.in")).toBe(false);
+    expect(isRootAdmin("admin@eventdeck.test")).toBe(false);
+    expect(isRootAdmin(null)).toBe(false);
+    expect(isRootAdmin(undefined)).toBe(false);
+    expect(isRootAdmin("")).toBe(false);
+  });
+});
+

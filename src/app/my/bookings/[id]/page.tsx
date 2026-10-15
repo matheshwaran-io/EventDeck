@@ -78,6 +78,7 @@ export default async function BookingPage({ params }: PageProps<"/my/bookings/[i
           posterPath={event.posterPath}
           seed={event.slug}
           size="thumb"
+          fit="cover"
           className="hidden size-28 shrink-0 rounded-xl sm:block"
         />
         <div className="min-w-0 flex-1">

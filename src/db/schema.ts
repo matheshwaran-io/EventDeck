@@ -234,7 +234,7 @@ export const events = pgTable(
     check("events_time_order", sql`${t.endAt} > ${t.startAt}`),
     check("events_registration_before_end", sql`${t.registrationClosesAt} <= ${t.endAt}`),
     check("events_checkin_order", sql`${t.checkinClosesAt} > ${t.checkinOpensAt}`),
-    check("events_max_per_booking", sql`${t.maxTicketsPerBooking} between 1 and 10`),
+    check("events_max_per_booking", sql`${t.maxTicketsPerBooking} between 1 and 4`),
     check(
       "events_eligible_nonempty",
       sql`cardinality(${t.eligibleCategories}) > 0`,

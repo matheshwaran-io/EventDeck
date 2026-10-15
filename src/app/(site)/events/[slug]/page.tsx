@@ -7,7 +7,7 @@ import { TicketSelector } from "@/components/events/ticket-selector";
 import { StatusBadge } from "@/components/common/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
-import { categoryLabel, PARTICIPANT_CATEGORIES } from "@/lib/constants";
+import { categoryLabel, MAX_TICKETS_PER_PERSON, PARTICIPANT_CATEGORIES } from "@/lib/constants";
 import { formatDate, formatDateTime, formatPaise, formatRange, formatTime } from "@/lib/format";
 import { getEventForViewer } from "@/lib/server/events";
 import { checkEligibility, describeAudience } from "@/lib/domain/eligibility";
@@ -67,30 +67,30 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         </div>
       )}
 
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-14 lg:px-8 lg:py-12">
-        <div className="min-w-0">
-          <div className="grid gap-6 sm:grid-cols-[minmax(0,220px)_1fr] sm:items-start sm:gap-8 xl:grid-cols-[minmax(0,300px)_1fr]">
-            <PosterArt
-              title={event.title}
-              category={event.category}
-              startAt={event.startAt}
-              posterPath={event.posterPath}
-              seed={event.slug}
-              size="hero"
-              priority
-              className="aspect-[4/5] w-full max-w-[300px] rounded-2xl shadow-[var(--shadow-lift)] ring-1 ring-black/5"
-            />
-            <div className="flex flex-col">
-              <p className="eyebrow">
-                {categoryLabel(event.category)} · Hosted by {organizerName}
-              </p>
-              <h1 className="font-display mt-3 text-[2.5rem] leading-[1] text-balance xl:text-[3.25rem]">{event.title}</h1>
-              <p className="mt-4 text-[1.0625rem] leading-relaxed text-pretty text-muted-foreground">{event.summary}</p>
-              <p className="mt-5 text-sm font-medium">{formatRange(event.startAt, event.endAt)}</p>
-            </div>
-          </div>
+      {/* District-style header: title + date, then the full poster on a wide banner */}
+      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+        <p className="eyebrow">
+          {categoryLabel(event.category)} · Hosted by {organizerName}
+        </p>
+        <h1 className="font-display mt-2 text-[2.25rem] leading-[1.02] text-balance sm:text-[3rem]">{event.title}</h1>
+        <p className="mt-2 text-[0.95rem] font-medium text-signal">{formatRange(event.startAt, event.endAt)}</p>
+        <PosterArt
+          title={event.title}
+          category={event.category}
+          startAt={event.startAt}
+          posterPath={event.posterPath}
+          seed={event.slug}
+          size="hero"
+          priority
+          className="mt-6 aspect-[4/5] w-full rounded-3xl shadow-[var(--shadow-soft)] ring-1 ring-black/5 sm:aspect-[16/10] lg:aspect-auto lg:h-[480px]"
+        />
+      </div>
 
-          <dl className="mt-10 grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-14 lg:px-8 lg:py-10">
+        <div className="min-w-0">
+          <p className="max-w-2xl text-[1.0625rem] leading-relaxed text-pretty text-muted-foreground">{event.summary}</p>
+
+          <dl className="mt-8 grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2 sm:[&>div:last-child:nth-child(odd)]:col-span-2">
             {facts.map((f) => (
               <div key={f.label} className="flex gap-3 bg-card p-4">
                 <f.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
@@ -130,7 +130,7 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
               id: event.id,
               slug: event.slug,
               status: event.status,
-              maxPerBooking: event.maxTicketsPerBooking,
+              maxPerBooking: Math.min(event.maxTicketsPerBooking, MAX_TICKETS_PER_PERSON),
               registrationClosesAt: event.registrationClosesAt.toISOString(),
               allowPassRequests: event.allowPassRequests,
             }}

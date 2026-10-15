@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowRight, Banknote, Building2, CheckCircle2, HelpCircle, Loader2, Smartphone } from "lucide-react";
+import { ArrowRight, Banknote, Building2, CheckCircle2, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { requestPayoutAction } from "@/app/actions/payouts";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { OrganizerPayoutAccount } from "@/db/schema";
-import { formatPaise } from "@/lib/format";
-import { PLATFORM_FEE_RATE, PLATFORM_FEE_PERCENT } from "@/lib/validation/payouts";
+import { PLATFORM_FEE_RATE } from "@/lib/validation/payouts";
 
 export function RequestPayoutDialog({
   event,

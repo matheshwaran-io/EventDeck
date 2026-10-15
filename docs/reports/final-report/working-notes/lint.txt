@@ -1,0 +1,78 @@
+
+> eventdeck@0.1.0 lint
+> eslint
+
+
+/Users/maddy/Current Project/EMS/src/app/admin/payouts/page.tsx
+   9:3  warning  'CreditCard' is defined but never used   @typescript-eslint/no-unused-vars
+  10:3  warning  'Download' is defined but never used     @typescript-eslint/no-unused-vars
+  12:3  warning  'ShieldCheck' is defined but never used  @typescript-eslint/no-unused-vars
+  14:3  warning  'Wallet' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/maddy/Current Project/EMS/src/app/organizer/payouts/page.tsx
+   4:3   warning  'ArrowUpRight' is defined but never used   @typescript-eslint/no-unused-vars
+   6:3   warning  'Building2' is defined but never used      @typescript-eslint/no-unused-vars
+   7:3   warning  'CalendarRange' is defined but never used  @typescript-eslint/no-unused-vars
+  11:3   warning  'CreditCard' is defined but never used     @typescript-eslint/no-unused-vars
+  12:3   warning  'HelpCircle' is defined but never used     @typescript-eslint/no-unused-vars
+  14:3   warning  'ShieldCheck' is defined but never used    @typescript-eslint/no-unused-vars
+  23:10  warning  'Button' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/maddy/Current Project/EMS/src/components/admin/process-payout-dialog.tsx
+  4:10  warning  'ArrowUpRight' is defined but never used  @typescript-eslint/no-unused-vars
+  4:35  warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/maddy/Current Project/EMS/src/components/auth/signup-form.tsx
+  67:22  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/maddy/Current Project/EMS/src/components/auth/signup-form.tsx:67:22
+  65 |   });
+  66 |
+> 67 |   const formValues = watch();
+     |                      ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  68 |   const currentInstitutionType = formValues.institutionType ?? "SRM";
+  69 |   const currentAffiliation = formValues.affiliation ?? "STUDENT";
+  70 |   const currentCampus = formValues.campus ?? "KTR";  react-hooks/incompatible-library
+
+/Users/maddy/Current Project/EMS/src/components/organizer/event-form.tsx
+  74:20  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/maddy/Current Project/EMS/src/components/organizer/event-form.tsx:74:20
+  72 |   const tiers = useFieldArray({ control, name: "tiers" });
+  73 |   const e = formState.errors;
+> 74 |   const eligible = watch("eligibleCategories") ?? [];
+     |                    ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  75 |   const instTypes = watch("eligibleInstitutionTypes") ?? [];
+  76 |   const campuses = watch("eligibleCampuses") ?? [];
+  77 |   const [institutionsText, setInstitutionsText] = useState((defaults.eligibleInstitutions ?? []).join("\n"));  react-hooks/incompatible-library
+
+/Users/maddy/Current Project/EMS/src/components/organizer/payout-account-form.tsx
+  4:21  warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+  4:35  warning  'CreditCard' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/maddy/Current Project/EMS/src/components/organizer/request-payout-dialog.tsx
+   4:57  warning  'HelpCircle' is defined but never used            @typescript-eslint/no-unused-vars
+  20:10  warning  'formatPaise' is defined but never used           @typescript-eslint/no-unused-vars
+  21:29  warning  'PLATFORM_FEE_PERCENT' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/maddy/Current Project/EMS/src/components/profile/profile-forms.tsx
+  31:20  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/maddy/Current Project/EMS/src/components/profile/profile-forms.tsx:31:20
+  29 |   });
+  30 |   const e = formState.errors;
+> 31 |   const instType = watch("institutionType") ?? "SRM";
+     |                    ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  32 |
+  33 |   const onSubmit = handleSubmit((values) =>
+  34 |     start(async () => {  react-hooks/incompatible-library
+
+✖ 21 problems (0 errors, 21 warnings)
+
+EXIT 0

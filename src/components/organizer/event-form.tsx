@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { EVENT_CATEGORIES, MAX_POSTER_BYTES, PARTICIPANT_CATEGORIES, SRM_CAMPUSES } from "@/lib/constants";
+import { EVENT_CATEGORIES, MAX_POSTER_BYTES, MAX_TICKETS_PER_PERSON, PARTICIPANT_CATEGORIES, SRM_CAMPUSES } from "@/lib/constants";
 import { parseInstitutionList } from "@/lib/domain/eligibility";
 
 const INSTITUTION_OPTIONS = [
@@ -242,8 +242,8 @@ export function EventForm({
               <option value="unlisted">Unlisted — direct link only</option>
             </NativeSelect>
           </Field>
-          <Field label="Max tickets per person" htmlFor="maxTicketsPerBooking" error={e.maxTicketsPerBooking?.message}>
-            <Input id="maxTicketsPerBooking" type="number" min={1} max={10} {...register("maxTicketsPerBooking")} />
+          <Field label="Max tickets per person" htmlFor="maxTicketsPerBooking" error={e.maxTicketsPerBooking?.message} hint={`Platform limit: ${MAX_TICKETS_PER_PERSON}.`}>
+            <Input id="maxTicketsPerBooking" type="number" min={1} max={MAX_TICKETS_PER_PERSON} {...register("maxTicketsPerBooking")} />
           </Field>
         </div>
         <fieldset>

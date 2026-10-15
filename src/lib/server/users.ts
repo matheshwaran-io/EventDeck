@@ -5,7 +5,7 @@ import { organizerApplications, profiles, type Profile, type Role } from "@/db/s
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { audit, notify, notifyAdmins } from "./audit";
 import { DomainError, pgErrorCode } from "./errors";
-import { isSrmEmail } from "@/lib/constants";
+import { isSrmEmail, isRootAdmin } from "@/lib/constants";
 
 export async function updateOwnProfile(
   user: Profile,
@@ -152,6 +152,7 @@ export async function setUserRole(admin: Profile, userId: string, role: Exclude<
   return db.transaction(async (tx) => {
     const [target] = await tx.select().from(profiles).where(eq(profiles.id, userId)).for("update");
     if (!target) throw new DomainError("User not found.", "not_found");
+    if (isRootAdmin(target.email)) throw new DomainError("Root administrator account is permanent and cannot be modified.", "forbidden");
     if (target.role === "admin") throw new DomainError("Administrator accounts can't be changed here.", "forbidden");
     if (target.role === role) return target;
     const [row] = await tx.update(profiles).set({ role, updatedAt: new Date() }).where(eq(profiles.id, userId)).returning();
@@ -178,6 +179,7 @@ export async function setUserActive(admin: Profile, userId: string, active: bool
   const row = await db.transaction(async (tx) => {
     const [target] = await tx.select().from(profiles).where(eq(profiles.id, userId)).for("update");
     if (!target) throw new DomainError("User not found.", "not_found");
+    if (isRootAdmin(target.email)) throw new DomainError("Root administrator account is permanent and cannot be deactivated or removed.", "forbidden");
     if (target.role === "admin") throw new DomainError("Administrator accounts can't be deactivated here.", "forbidden");
     const [row] = await tx.update(profiles).set({ isActive: active, updatedAt: new Date() }).where(eq(profiles.id, userId)).returning();
     await audit(tx, {

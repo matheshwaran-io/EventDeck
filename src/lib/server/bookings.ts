@@ -12,7 +12,7 @@ import {
   type BookingStatus,
   type Profile,
 } from "@/db/schema";
-import { HOLD_MINUTES } from "@/lib/constants";
+import { HOLD_MINUTES, MAX_TICKETS_PER_PERSON } from "@/lib/constants";
 import { priceOrder, PricingError, type LineRequest } from "@/lib/domain/pricing";
 import { bookingReference, eventCode, qrToken, ticketNumber } from "@/lib/domain/tokens";
 import { assertBookingTransition, INVENTORY_HOLDING } from "@/lib/domain/transitions";
@@ -162,10 +162,12 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
         throw new DomainError("This event doesn't accept complimentary pass requests.", "forbidden");
       }
 
+      // Never more than the platform cap, whatever an older event row says.
+      const perPersonLimit = Math.min(event.maxTicketsPerBooking, MAX_TICKETS_PER_PERSON);
       const tiers = await tx.select().from(ticketTiers).where(eq(ticketTiers.eventId, event.id));
       let priced;
       try {
-        priced = priceOrder(input.lines, tiers, event.maxTicketsPerBooking);
+        priced = priceOrder(input.lines, tiers, perPersonLimit);
       } catch (e) {
         if (e instanceof PricingError) throw new DomainError(e.message);
         throw e;
@@ -182,11 +184,11 @@ export async function createBooking(user: Profile, input: CreateBookingInput): P
             inArray(bookings.status, [...INVENTORY_HOLDING]),
           ),
         );
-      if (held + priced.quantity > event.maxTicketsPerBooking) {
+      if (held + priced.quantity > perPersonLimit) {
         throw new DomainError(
           held > 0
-            ? `You already hold ${held} ticket(s) for this event; the limit is ${event.maxTicketsPerBooking} per person.`
-            : `You can book up to ${event.maxTicketsPerBooking} tickets.`,
+            ? `You already hold ${held} ticket(s) for this event; the limit is ${perPersonLimit} per person.`
+            : `You can book up to ${perPersonLimit} tickets.`,
           "conflict",
         );
       }

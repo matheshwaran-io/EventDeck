@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Building2, CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, Smartphone } from "lucide-react";
+import { Building2, Landmark, Loader2, ShieldCheck, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { savePayoutAccountAction } from "@/app/actions/payouts";
 import { Button } from "@/components/ui/button";

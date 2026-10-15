@@ -6,6 +6,7 @@ export const APP_TIMEZONE = "Asia/Kolkata";
 export const APP_TZ_OFFSET = "+05:30";
 export const HOLD_MINUTES = 10;
 export const MAX_POSTER_BYTES = 2 * 1024 * 1024;
+export { PRODUCTION_URL, getAppUrl, getAuthRedirectUrl } from "./url";
 
 /** SRM Institute of Science & Technology email domain regex */
 export const SRM_EMAIL_REGEX = /^[^@]+@([a-z0-9-]+\.)*(srmist\.edu\.in|srmuniv\.ac\.in)$/i;
@@ -20,6 +21,15 @@ export function isSrmEmail(email: string): boolean {
   }
   return false;
 }
+
+/** Permanent Root Administrator email: cannot be removed, demoted, deactivated, or deleted. */
+export const ROOT_ADMIN_EMAIL = "eventdeck88@gmail.com";
+
+export function isRootAdmin(email?: string | null): boolean {
+  if (!email) return false;
+  return email.trim().toLowerCase() === ROOT_ADMIN_EMAIL.toLowerCase();
+}
+
 
 export const EVENT_CATEGORIES: { value: EventCategory; label: string }[] = [
   { value: "technical", label: "Technical" },
@@ -114,3 +124,6 @@ export const REFUND_STATUS: Record<RefundStatus, { label: string; tone: Tone }> 
 };
 
 export type { Tone };
+
+/** Platform-wide cap: one person can hold at most this many tickets for any single event. */
+export const MAX_TICKETS_PER_PERSON = 4;

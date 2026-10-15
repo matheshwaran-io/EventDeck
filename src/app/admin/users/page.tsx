@@ -11,7 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { roleLabel } from "@/components/layout/nav-links";
 import { requirePageUser } from "@/lib/auth";
-import { participantLabel } from "@/lib/constants";
+import { isRootAdmin, participantLabel } from "@/lib/constants";
 import { formatDate, relativeTime } from "@/lib/format";
 import { listApplications, listUsers } from "@/lib/server/users";
 import { cn } from "@/lib/utils";
@@ -135,78 +135,87 @@ async function People({ adminId, q, role, page }: { adminId: string; q?: string;
               </tr>
             </thead>
             <tbody className="divide-y">
-              {rows.map(({ profile: p, bookings, events }) => (
-                <tr key={p.id} className={cn("[&>td]:px-4 [&>td]:py-3", !p.isActive && "opacity-60")}>
-                  <td>
-                    <p className="font-medium">{p.fullName}</p>
-                    <p className="text-xs text-muted-foreground">{p.email}</p>
-                  </td>
-                  <td>
-                    <div className="flex flex-wrap gap-1">
-                      <StatusBadge tone={p.role === "admin" ? "danger" : p.role === "organizer" ? "info" : "neutral"}>{roleLabel[p.role]}</StatusBadge>
-                      {!p.isActive && <StatusBadge tone="warning">Deactivated</StatusBadge>}
-                    </div>
-                  </td>
-                  <td className="text-muted-foreground">
-                    <p className="text-sm font-medium text-foreground">
-                      {p.institutionType === "SRM"
-                        ? `SRM ${p.campus ?? "KTR"}`
-                        : p.institutionType === "GUEST"
-                          ? "External Guest"
-                          : p.institutionName || p.institution || "Other College"}
-                    </p>
-                    <span className="block text-xs text-muted-foreground capitalize">
-                      {p.affiliation ? p.affiliation.toLowerCase() : participantLabel(p.category)}
-                      {p.city ? ` (${p.city})` : ""}
-                      {p.department ? ` · ${p.department}` : ""}
-                    </span>
-                  </td>
-                  <td className="text-right text-xs text-muted-foreground tabular">
-                    {bookings} bookings{events ? ` · ${events} events` : ""}
-                  </td>
-                  <td className="text-muted-foreground">{formatDate(p.createdAt)}</td>
-                  <td>
-                    {p.role !== "admin" && p.id !== adminId ? (
-                      <div className="flex justify-end gap-1.5">
-                        {p.role === "participant" ? (
-                          <ConfirmAction
-                            action={setUserRoleAction.bind(null, p.id, "organizer")}
-                            variant="outline"
-                            size="xs"
-                            label="Make organizer"
-                            title="Grant organizer access"
-                            description={`${p.fullName} will be able to create and publish events.`}
-                          />
+              {rows.map(({ profile: p, bookings, events }) => {
+                const isRoot = isRootAdmin(p.email);
+                return (
+                  <tr key={p.id} className={cn("[&>td]:px-4 [&>td]:py-3", !p.isActive && "opacity-60")}>
+                    <td>
+                      <p className="font-medium">{p.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{p.email}</p>
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {isRoot ? (
+                          <StatusBadge tone="danger">Root Admin</StatusBadge>
                         ) : (
-                          <ConfirmAction
-                            action={setUserRoleAction.bind(null, p.id, "participant")}
-                            variant="outline"
-                            size="xs"
-                            label="Revoke organizer"
-                            title="Remove organizer access"
-                            description="Their existing events stay, but they can no longer manage them. Admins can still manage those events."
-                          />
+                          <StatusBadge tone={p.role === "admin" ? "danger" : p.role === "organizer" ? "info" : "neutral"}>{roleLabel[p.role]}</StatusBadge>
                         )}
-                        {p.isActive ? (
-                          <ConfirmAction
-                            action={setUserActiveAction.bind(null, p.id, false)}
-                            variant="destructive-outline"
-                            size="xs"
-                            icon={<UserX />}
-                            label="Deactivate"
-                            title="Deactivate account"
-                            description="They're signed out and can't sign in until reactivated. Their bookings are kept."
-                          />
-                        ) : (
-                          <ConfirmAction action={setUserActiveAction.bind(null, p.id, true)} variant="outline" size="xs" label="Reactivate" title="Reactivate account" />
-                        )}
+                        {!p.isActive && <StatusBadge tone="warning">Deactivated</StatusBadge>}
                       </div>
-                    ) : (
-                      <p className="text-right text-xs text-muted-foreground">—</p>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="text-muted-foreground">
+                      <p className="text-sm font-medium text-foreground">
+                        {p.institutionType === "SRM"
+                          ? `SRM ${p.campus ?? "KTR"}`
+                          : p.institutionType === "GUEST"
+                            ? "External Guest"
+                            : p.institutionName || p.institution || "Other College"}
+                      </p>
+                      <span className="block text-xs text-muted-foreground capitalize">
+                        {p.affiliation ? p.affiliation.toLowerCase() : participantLabel(p.category)}
+                        {p.city ? ` (${p.city})` : ""}
+                        {p.department ? ` · ${p.department}` : ""}
+                      </span>
+                    </td>
+                    <td className="text-right text-xs text-muted-foreground tabular">
+                      {bookings} bookings{events ? ` · ${events} events` : ""}
+                    </td>
+                    <td className="text-muted-foreground">{formatDate(p.createdAt)}</td>
+                    <td>
+                      {isRoot ? (
+                        <p className="text-right text-xs font-semibold text-danger tracking-wide">Permanent</p>
+                      ) : p.role !== "admin" && p.id !== adminId ? (
+                        <div className="flex justify-end gap-1.5">
+                          {p.role === "participant" ? (
+                            <ConfirmAction
+                              action={setUserRoleAction.bind(null, p.id, "organizer")}
+                              variant="outline"
+                              size="xs"
+                              label="Make organizer"
+                              title="Grant organizer access"
+                              description={`${p.fullName} will be able to create and publish events.`}
+                            />
+                          ) : (
+                            <ConfirmAction
+                              action={setUserRoleAction.bind(null, p.id, "participant")}
+                              variant="outline"
+                              size="xs"
+                              label="Revoke organizer"
+                              title="Remove organizer access"
+                              description="Their existing events stay, but they can no longer manage them. Admins can still manage those events."
+                            />
+                          )}
+                          {p.isActive ? (
+                            <ConfirmAction
+                              action={setUserActiveAction.bind(null, p.id, false)}
+                              variant="destructive-outline"
+                              size="xs"
+                              icon={<UserX />}
+                              label="Deactivate"
+                              title="Deactivate account"
+                              description="They're signed out and can't sign in until reactivated. Their bookings are kept."
+                            />
+                          ) : (
+                            <ConfirmAction action={setUserActiveAction.bind(null, p.id, true)} variant="outline" size="xs" label="Reactivate" title="Reactivate account" />
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-right text-xs text-muted-foreground">—</p>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

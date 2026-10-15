@@ -11,14 +11,15 @@ A mobile-first platform for discovering, booking and running university events: 
 1. [Features](#features)
 2. [Stack](#stack)
 3. [Architecture & security model](#architecture--security-model)
-4. [Local development](#local-development)
+4. [Local development](#local-development) · [Windows quick start](#windows-quick-start)
 5. [Demo accounts](#demo-accounts)
 6. [Razorpay Test Mode](#razorpay-test-mode)
 7. [Supabase (cloud) setup](#supabase-cloud-setup)
 8. [Deploying to Vercel](#deploying-to-vercel)
 9. [Provisioning the first administrator](#provisioning-the-first-administrator)
-10. [Testing](#testing)
-11. [Known limitations](#known-limitations)
+10. [Testing & Functional QA Manual](#testing--functional-qa-manual)
+11. [Documentation](#documentation)
+12. [Known limitations](#known-limitations)
 
 ---
 
@@ -30,7 +31,7 @@ A mobile-first platform for discovering, booking and running university events: 
 | **Booking** | Event-specific tiers (Silver / Gold / VIP … any names), multi-tier multi-ticket bookings, per-event per-person limits, eligibility by participant category, registration deadline enforced server-side, per-attendee names, idempotent submissions. |
 | **Inventory safety** | Atomic `UPDATE … WHERE allocated + n <= capacity`, DB check constraints, sorted multi-tier locking, 10-minute holds released exactly once (lazy expiry on every relevant read + daily cron safety net). |
 | **Payments** | Server-created Razorpay orders (server-priced), Checkout signature verification, webhook signature verification + event-id dedupe, idempotent confirmation, retry after failure, late-payment recovery or exception parking, duplicate-payment detection. A local **payment simulator** drives the same code path when keys are absent (never on Vercel production). |
-| **Verification** | Paid and free bookings both need organizer approval before tickets become valid. Complimentary pass requests (₹0) with an eligibility reason. Rejection with a note; rejected *paid* bookings are routed to the admin exception queue. |
+| **Verification** | Free bookings are approved immediately and paid bookings as soon as the payment is verified. Complimentary pass requests (₹0, with an eligibility reason) wait for the organizer to approve or reject them with a note. |
 | **Tickets** | One ticket per attendee, unique ticket number, 192-bit random QR token (no personal data, no status in the QR). Access-controlled PDF download (cached in a private Storage bucket). |
 | **Check-in** | `html5-qrcode` scanner with permission / insecure-context / no-camera handling, manual ticket-number fallback, server validation (event match, approval, check-in window), atomic duplicate prevention across devices, live session log. |
 | **Cancellation & refunds** | Organizer requests → admin approves → event cancelled, new bookings stop, tickets invalidated, attendees notified, refunds queued for paid bookings; refunds processed via Razorpay Test Mode (or simulator), status tracked to participants; webhook updates. |
@@ -59,7 +60,7 @@ Supabase Realtime / PostgREST            src/lib/server/*  ── all writes, tr
 
   | Field | Values |
   | --- | --- |
-  | `bookings.status` (lifecycle + verification) | `awaiting_payment → pending_verification → approved`; `rejected`, `cancelled`, `expired`, `event_cancelled`, `payment_exception` |
+  | `bookings.status` (lifecycle + verification) | free → `approved`; paid: `awaiting_payment → approved`; pass request: `pending_verification → approved \| rejected`; also `cancelled`, `expired`, `event_cancelled`, `payment_exception` |
   | `bookings.payment_status` | `not_required`, `pending`, `paid`, `failed`, `expired` |
   | `tickets.status` | `valid`, `invalidated` (+ check-in recorded in `check_ins`, unique per ticket) |
   | `bookings.refund_status` / `refunds.status` | `not_applicable`, `pending`, `processed`, `failed` |
@@ -77,10 +78,7 @@ npm install
 ```
 
 1. **Configure Environment Variables**:
-   Copy `.env.example` to `.env.local`:
-   ```bash
-   cp .env.example .env.local
-   ```
+   Copy `.env.example` to `.env.local` (`cp .env.example .env.local` on macOS/Linux, `Copy-Item .env.example .env.local` in Windows PowerShell):
    Fill in your hosted Supabase credentials from your Supabase Dashboard:
    - `NEXT_PUBLIC_SUPABASE_URL`: Project URL (`https://<project-ref>.supabase.co`)
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`): Public API key
@@ -110,6 +108,38 @@ Open http://localhost:3000 in your browser. Hosted Supabase Studio is available 
 
 > Camera access requires a secure context: `localhost` works; on a phone use the HTTPS Vercel deployment (or an HTTPS tunnel).
 
+## Windows quick start
+
+Windows 10/11 with Node.js 24 LTS (20.9+), Git and PowerShell. The npm scripts use `cross-env`, so they run the same in PowerShell and `cmd.exe`. Full step-by-step manual with troubleshooting: **[docs/WINDOWS_SETUP_AND_RUN.md](docs/WINDOWS_SETUP_AND_RUN.md)**.
+
+```powershell
+git clone https://github.com/Eventdeck88/EventDeck.git
+```
+
+```powershell
+Set-Location EventDeck
+```
+
+```powershell
+npm ci
+```
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Fill in `.env.local` ([variable reference](docs/ENVIRONMENT_VARIABLES.md)), then run:
+
+```powershell
+npm run verify
+```
+
+```powershell
+npm run dev
+```
+
+Open http://localhost:3000. If PowerShell reports that `npm.ps1` cannot be loaded, use `npm.cmd` instead of `npm` or run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
 ## Demo accounts
 
 `npm run db:seed` creates these accounts (password = your `SEED_DEMO_PASSWORD`):
@@ -120,8 +150,8 @@ Open http://localhost:3000 in your browser. Hosted Supabase Studio is available 
 | `organizer@eventdeck.test` | Organizer | HackNorth, ML Workshop, Research Day, Orientation Mixer (check-in open now), unlisted + draft events |
 | `cultural@eventdeck.test` | Organizer | Raag & Rhythm (Silver/Gold/Diamond), Football Cup, Film Club |
 | `participant@eventdeck.test` | Participant | Approved paid + free tickets |
-| `guest@eventdeck.test` | Participant (external student) | Paid booking awaiting verification, pass request |
-| `aditi@eventdeck.test` | Participant | Hold awaiting payment, paid booking to verify |
+| `guest@eventdeck.test` | Participant (external student) | Approved paid booking, pass request awaiting organizer review |
+| `aditi@eventdeck.test` | Participant | Hold awaiting payment, approved paid booking |
 | `applicant@eventdeck.test` | Participant | Use to try the organizer application flow |
 
 ## Razorpay Test Mode
@@ -153,10 +183,14 @@ Never run destructive resets (`supabase db reset`, dropping schemas) against a d
 ## Deploying to Vercel
 
 1. Import the repository in Vercel (framework: Next.js).
-2. Add environment variables (Production + Preview): everything in `.env.example` **except** `SEED_DEMO_PASSWORD`, `ADMIN_*`. Set `NEXT_PUBLIC_APP_URL` to the deployment URL, `ALLOW_MOCK_PAYMENTS=false` (the simulator is force-disabled on production regardless).
+2. Add environment variables (Production + Preview): everything in `.env.example` **except** `SEED_DEMO_PASSWORD`, `ADMIN_*`.
+   - Set `NEXT_PUBLIC_APP_URL` to `https://eventdeck.online` for production, and `ALLOW_MOCK_PAYMENTS=false` (the simulator is force-disabled on production regardless).
+   - In Supabase Dashboard → **Authentication** → **URL Configuration**:
+     - **Site URL**: `https://eventdeck.online`
+     - **Redirect URLs**: Add `https://eventdeck.online/**` and `http://localhost:3000/**`.
 3. Deploy. `vercel.json` registers a daily cron (`/api/cron/expire-holds`, authorised with `CRON_SECRET`) as a safety net; holds also expire lazily whenever an event, booking or dashboard is read.
 4. Point the Razorpay webhook at `https://<domain>/api/webhooks/razorpay`.
-5. Smoke test: sign up, book, pay with a test card, approve as organizer, download the PDF, scan it from a phone over HTTPS.
+5. Smoke test: sign up (confirmation e-mail from `noreply@eventdeck.online`), book, pay with a test card (tickets are issued once payment is verified), download the PDF, scan it from a phone over HTTPS, reset a password.
 
 ## Provisioning the first administrator
 
@@ -168,7 +202,18 @@ ADMIN_EMAIL=you@university.edu ADMIN_NAME="Your Name" npm run admin:create
 
 If the account doesn't exist it is created (email pre-confirmed). Without `ADMIN_PASSWORD`, a strong random password is generated and printed **once** to your terminal — store it in a password manager. Running it for an existing account just promotes it.
 
-## Testing
+## Testing & Functional QA Manual
+
+> **Primary Manual for Evaluators & Testers:**  
+> A complete, step-by-step testing manual with verified workflows, test-card tables, Netbanking simulation steps, role authorization scenarios, and pre-demonstration checklists is available at:  
+> 📘 **[Complete Functional Testing Manual (`docs/testing/TESTING_MANUAL.md`)](docs/testing/TESTING_MANUAL.md)**
+
+### Companion Testing Guides:
+* **[Test Cases Matrix (`docs/testing/TEST_CASES.md`)](docs/testing/TEST_CASES.md)**: 84 detailed test cases across 13 modules covering all roles, payment methods, and security negative tests.
+* **[Role-Based Test Account Guide (`docs/testing/TEST_ACCOUNTS.md`)](docs/testing/TEST_ACCOUNTS.md)**: Pre-seeded accounts, credential safety, and safe admin/moderator provisioning.
+* **[Razorpay Payment Testing Guide (`docs/testing/PAYMENT_TESTING_GUIDE.md`)](docs/testing/PAYMENT_TESTING_GUIDE.md)**: Test Mode setup, Indian test cards, Netbanking simulation, error codes, and webhook verification.
+
+### Automated Test Commands
 
 | Command | Covers |
 | --- | --- |
@@ -200,7 +245,7 @@ npx playwright install chromium
 
 ## QA
 
-The full QA plan, test cases, bug report and final report live in [`docs/`](docs/QA_FINAL_REPORT.md). Supabase PostgreSQL is the only database for development, tests, staging and production — no Docker or local PostgreSQL is used. With `.env.test` set up as described under [Testing](#testing):
+The full QA plan, test cases, bug report and final report live in [`docs/qa/`](docs/qa/QA_FINAL_REPORT.md). Supabase PostgreSQL is the only database for development, tests, staging and production — no Docker or local PostgreSQL is used. With `.env.test` set up as described under [Testing](#testing--functional-qa-manual):
 
 ```bash
 npx vitest run
@@ -210,10 +255,27 @@ npx vitest run
 npx playwright test
 ```
 
+## Documentation
+
+Full architectural specifications, standard operating procedures, developer guides, and testing manuals are organized under [`docs/`](docs/README.md):
+
+* **[Functional Testing Manual](docs/testing/TESTING_MANUAL.md)**: Complete step-by-step testing manual for evaluators and QA testers.
+* **[Test Cases Matrix](docs/testing/TEST_CASES.md)**: 84 identifiable test cases with preconditions, steps, and expected outcomes.
+* **[Role-Based Test Accounts](docs/testing/TEST_ACCOUNTS.md)**: Safe credentials inventory, setup commands, and role boundaries.
+* **[Razorpay Payment Testing Guide](docs/testing/PAYMENT_TESTING_GUIDE.md)**: Sandbox checkout, official test cards, Netbanking simulation, and webhooks.
+* **[System Architecture](docs/architecture/PROJECT_ARCHITECTURE.md)**: System design, data flow, concurrency control, and security boundaries.
+* **[Contributing Guidelines](docs/development/CONTRIBUTING.md)**: Branch naming, git workflow, and pull request checklist.
+* **[Coding Standards](docs/development/CODING_STANDARDS.md)**: Engineering conventions, React 19 patterns, and validation rules.
+* **[Windows Setup & Run Manual](docs/WINDOWS_SETUP_AND_RUN.md)**: Complete Windows 10/11 installation, configuration, testing and troubleshooting manual.
+* **[Environment Variables](docs/ENVIRONMENT_VARIABLES.md)**: Every variable the code reads, with purpose and public/secret classification.
+* **[Deployment Guide](docs/deployment/DEPLOYMENT_GUIDE.md)**: Deploying to Vercel, Supabase Cloud, custom domain (`eventdeck.online`), and Brevo SMTP.
+* **[Troubleshooting Guide](docs/troubleshooting/TROUBLESHOOTING.md)**: Diagnostics and resolutions for common issues.
+* **[QA Test Suite](docs/qa/QA_FINAL_REPORT.md)**: Test plan, test cases, and quality audit report.
+
 ## Known limitations
 
 * **Rate limiting** relies on Supabase Auth's built-in limits plus request-size/pagination caps; there is no distributed per-IP rate limiter (no paid infrastructure by design).
 * **Refunds** are only for officially cancelled events; individual refunds for rejected paid bookings are handled off-app and recorded via **Admin → Exceptions → Mark resolved**.
-* **Email** notifications are out of scope (in-app + realtime only). Supabase's own auth emails (confirmation) still work if enabled.
+* **Email**: the app sends no e-mail itself; event notifications are in-app and realtime. Supabase Auth sends sign-up confirmation and password-reset e-mails through Brevo SMTP (configured in the Supabase dashboard, sender `noreply@eventdeck.online`).
 * **Vercel Hobby cron** runs at most once a day; correctness doesn't depend on it because expiry is enforced lazily on every relevant read.
 * Free-tier quotas (Supabase database size/egress, Realtime connections, Vercel function time) apply — check the providers' current terms before an event with large attendance.

@@ -26,7 +26,8 @@
 *_backup.sql
 *.sql.bak
 
-# debug
+# debug / local logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -48,7 +49,8 @@ next-env.d.ts
 /playwright-report/
 /e2e/.auth/
 
-# e2e dev server build dir
+# e2e dev server build dir (and any other NEXT_DIST_DIR build dirs)
 /.next-e2e/
+/.next-*/
 /e2e/.fake-camera/
 !.env.test.example

@@ -50,6 +50,20 @@
       "when": 1791967011325,
       "tag": "0006_odd_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792009420398,
+      "tag": "0007_max_four_tickets_per_person",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792015000000,
+      "tag": "0008_root_admin_protection",
+      "breakpoints": true
     }
   ]
 }

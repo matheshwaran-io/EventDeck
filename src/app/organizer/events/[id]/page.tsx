@@ -12,6 +12,7 @@ import { formatDateTime, formatInr, formatPaise, relativeTime } from "@/lib/form
 import { getManagedEvent } from "@/lib/server/events";
 import { auditTrail, eventCancellationRequests } from "@/lib/server/queries";
 import { describeAction } from "@/components/organizer/activity-list";
+import { getAppUrl } from "@/lib/constants";
 
 export default async function ManagedEventOverview({ params }: PageProps<"/organizer/events/[id]">) {
   const { id } = await params;
@@ -24,7 +25,7 @@ export default async function ManagedEventOverview({ params }: PageProps<"/organ
   const allocated = tiers.reduce((a, t) => a + t.allocated, 0);
   const now = new Date();
   const checkinOpen = event.status === "published" && event.checkinOpensAt <= now && event.checkinClosesAt >= now;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = getAppUrl();
 
   return (
     <div className="space-y-10">

@@ -18,7 +18,13 @@ function createClient() {
     );
   }
   // prepare:false keeps us compatible with Supabase's transaction pooler (port 6543).
-  return postgres(url, { prepare: false, max: process.env.NODE_ENV === "production" ? 5 : 10 });
+  // max_pipeline:0 sends one query per connection at a time: postgres.js otherwise
+  // pipelines extra queries onto busy connections, which hangs or mixes up results
+  // through the transaction pooler once a page runs more queries than `max`.
+  // (max_pipeline is a runtime option missing from postgres.js's type definitions,
+  // hence the variable instead of an inline literal.)
+  const options = { prepare: false, max_pipeline: 0, max: process.env.NODE_ENV === "production" ? 5 : 10 };
+  return postgres(url, options);
 }
 
 const client = globalForDb.__uemsSql ?? createClient();

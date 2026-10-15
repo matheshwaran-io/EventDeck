@@ -1,11 +1,12 @@
 "use server";
 
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { refunds } from "@/db/schema";
+import { profiles, refunds } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { isRootAdmin } from "@/lib/constants";
 import { resolveException } from "@/lib/server/bookings";
 import { approveCancellation, processRefund, rejectCancellation } from "@/lib/server/cancellations";
 import { DomainError, toActionError, type ActionResult } from "@/lib/server/errors";
@@ -33,6 +34,10 @@ export async function setUserRoleAction(userId: string, role: "participant" | "o
   try {
     const admin = await requireUser(["admin"]);
     check(userId);
+    const [target] = await db.select({ email: profiles.email }).from(profiles).where(eq(profiles.id, userId)).limit(1);
+    if (target && isRootAdmin(target.email)) {
+      return { ok: false, error: "Root administrator account is permanent and cannot be modified." };
+    }
     if (role !== "participant" && role !== "organizer") throw new DomainError("Invalid role.");
     await setUserRole(admin, userId, role);
     revalidatePath("/admin/users");
@@ -46,6 +51,10 @@ export async function setUserActiveAction(userId: string, active: boolean): Prom
   try {
     const admin = await requireUser(["admin"]);
     check(userId);
+    const [target] = await db.select({ email: profiles.email }).from(profiles).where(eq(profiles.id, userId)).limit(1);
+    if (target && isRootAdmin(target.email)) {
+      return { ok: false, error: "Root administrator account is permanent and cannot be deactivated or removed." };
+    }
     await setUserActive(admin, userId, active);
     revalidatePath("/admin/users");
     return { ok: true, message: active ? "Account reactivated." : "Account deactivated and signed out." };

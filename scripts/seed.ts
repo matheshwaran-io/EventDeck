@@ -14,7 +14,7 @@ import { count, eq, sql } from "drizzle-orm";
 import { createClient } from "@supabase/supabase-js";
 import { db } from "@/db";
 import { events, profiles, ticketTiers, type Profile } from "@/db/schema";
-import { createBooking, decideBooking } from "@/lib/server/bookings";
+import { createBooking } from "@/lib/server/bookings";
 import { requestCancellation } from "@/lib/server/cancellations";
 import { confirmPayment, createOrderForBooking } from "@/lib/server/payments";
 import { slugify } from "@/lib/domain/tokens";
@@ -236,7 +236,7 @@ async function main() {
         visibility: s.visibility ?? "public",
         status: s.status ?? "published",
         publishedAt: (s.status ?? "published") === "published" ? new Date() : null,
-        maxTicketsPerBooking: s.max ?? 4,
+        maxTicketsPerBooking: Math.min(s.max ?? 4, 4),
         allowPassRequests: s.passes ?? false,
         ...(s.eligible ? { eligibleCategories: s.eligible } : {}),
       })
@@ -295,15 +295,15 @@ async function main() {
     return b;
   }
 
-  // Riya: approved paid booking with two attendees, plus a free approved registration.
-  const r1 = await paid(p1, raag.id, raag.tiers[1]!.id, 2, ["Riya Sharma", "Ananya Sharma"]);
-  await decideBooking(org2, r1.id, "approve");
-  const r2 = await createBooking(p1, { eventId: ml.id, lines: [{ tierId: ml.tiers[0]!.id, quantity: 1 }], attendeeNames: [], idempotencyKey: k() });
-  await decideBooking(org, r2.id, "approve");
-  const r3 = await createBooking(p1, { eventId: live!.id, lines: [{ tierId: liveTier!.id, quantity: 2 }], attendeeNames: ["Riya Sharma", "Kabir Singh"], idempotencyKey: k() });
-  await decideBooking(org, r3.id, "approve");
+  // Paid bookings are approved as soon as payment is verified, and free ones at once,
+  // so only complimentary pass requests are left for organizer review.
 
-  // Daniel: paid and awaiting organizer verification; plus a pass request.
+  // Riya: approved paid booking with two attendees, plus two free registrations.
+  await paid(p1, raag.id, raag.tiers[1]!.id, 2, ["Riya Sharma", "Ananya Sharma"]);
+  await createBooking(p1, { eventId: ml.id, lines: [{ tierId: ml.tiers[0]!.id, quantity: 1 }], attendeeNames: [], idempotencyKey: k() });
+  await createBooking(p1, { eventId: live!.id, lines: [{ tierId: liveTier!.id, quantity: 2 }], attendeeNames: ["Riya Sharma", "Kabir Singh"], idempotencyKey: k() });
+
+  // Daniel: a paid booking plus a pass request waiting for the organizer.
   await paid(p2, hack.id, hack.tiers[0]!.id, 1);
   await createBooking(p2, {
     eventId: hack.id,
@@ -313,14 +313,13 @@ async function main() {
     complimentary: { reason: "I'm mentoring the accessibility track on behalf of St. Joseph's College." },
   }).catch(() => undefined);
 
-  // Aditi: holds a reservation awaiting payment, and a paid football booking awaiting verification.
+  // Aditi: a reservation still awaiting payment, and a paid football booking.
   await createBooking(p3, { eventId: film.id, lines: [{ tierId: film.tiers[0]!.id, quantity: 2 }], attendeeNames: [], idempotencyKey: k() });
   await paid(p3, football.id, football.tiers[1]!.id, 3, ["Aditi Nair", "Meghna Nair", "Ishaan Rao"]);
 
   // A few more approved bookings so dashboards have shape.
   for (const [i, user] of [p2, p3].entries()) {
-    const b = await paid(user, raag.id, raag.tiers[0]!.id, 1 + i);
-    await decideBooking(org2, b.id, "approve");
+    await paid(user, raag.id, raag.tiers[0]!.id, 1 + i);
   }
 
   // Pending cancellation request for the admin queue.
