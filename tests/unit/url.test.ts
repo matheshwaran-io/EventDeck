@@ -8,6 +8,7 @@ describe("URL resolution and auth redirect helper", () => {
     delete process.env.VERCEL_ENV;
     delete process.env.NEXT_PUBLIC_VERCEL_ENV;
     delete process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.NEXT_PUBLIC_SITE_URL;
     delete process.env.VERCEL_URL;
   };
 
@@ -46,6 +47,35 @@ describe("URL resolution and auth redirect helper", () => {
     Object.assign(process.env, envSnapshot);
   });
 
+  it("rejects localhost in NODE_ENV=production and falls back to production URL", () => {
+    clearEnv();
+    const prevNodeEnv = process.env.NODE_ENV;
+    setNodeEnv("production");
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+    expect(getAppUrl()).toBe(PRODUCTION_URL);
+    expect(getAuthRedirectUrl("/auth/confirm")).toBe("https://eventdeck.online/auth/confirm");
+
+    process.env.NEXT_PUBLIC_APP_URL = "http://127.0.0.1:3000/";
+    expect(getAppUrl()).toBe(PRODUCTION_URL);
+
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+    expect(getAppUrl()).toBe(PRODUCTION_URL);
+    setNodeEnv(prevNodeEnv);
+    Object.assign(process.env, envSnapshot);
+  });
+
+  it("supports NEXT_PUBLIC_SITE_URL in production when set to a valid custom domain", () => {
+    clearEnv();
+    const prevNodeEnv = process.env.NODE_ENV;
+    setNodeEnv("production");
+    process.env.NEXT_PUBLIC_SITE_URL = "https://custom.eventdeck.online";
+    expect(getAppUrl()).toBe("https://custom.eventdeck.online");
+    expect(getAuthRedirectUrl("/auth/confirm")).toBe("https://custom.eventdeck.online/auth/confirm");
+    setNodeEnv(prevNodeEnv);
+    Object.assign(process.env, envSnapshot);
+  });
+
   it("respects custom non-vercel production domain when NODE_ENV=production", () => {
     clearEnv();
     const prevNodeEnv = process.env.NODE_ENV;
@@ -60,6 +90,11 @@ describe("URL resolution and auth redirect helper", () => {
     clearEnv();
     setNodeEnv("development");
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000/";
+    expect(getAppUrl()).toBe("http://localhost:3000");
+    expect(getAuthRedirectUrl("/auth/confirm")).toBe("http://localhost:3000/auth/confirm");
+
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000/";
     expect(getAppUrl()).toBe("http://localhost:3000");
     expect(getAuthRedirectUrl("/auth/confirm")).toBe("http://localhost:3000/auth/confirm");
     Object.assign(process.env, envSnapshot);

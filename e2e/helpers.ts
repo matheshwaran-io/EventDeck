@@ -3,8 +3,8 @@ import { expect, type Page } from "@playwright/test";
 import postgres from "postgres";
 
 export const PASSWORD = process.env.SEED_DEMO_PASSWORD!;
-// max_pipeline: 0 — see src/db/index.ts (not in postgres.js's types, so passed via a variable).
-const sqlOptions = { max: 2, idle_timeout: 5, prepare: false, max_pipeline: 0 };
+// max_pipeline: 1 — see src/db/index.ts (not in postgres.js's types, so passed via a variable).
+const sqlOptions = { max: 2, idle_timeout: 5, prepare: false, max_pipeline: 1 };
 export const sql = postgres(process.env.DATABASE_URL!, sqlOptions);
 
 export async function signIn(page: Page, email: string, next = "/") {

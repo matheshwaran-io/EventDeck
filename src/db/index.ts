@@ -18,12 +18,12 @@ function createClient() {
     );
   }
   // prepare:false keeps us compatible with Supabase's transaction pooler (port 6543).
-  // max_pipeline:0 sends one query per connection at a time: postgres.js otherwise
-  // pipelines extra queries onto busy connections, which hangs or mixes up results
-  // through the transaction pooler once a page runs more queries than `max`.
-  // (max_pipeline is a runtime option missing from postgres.js's type definitions,
-  // hence the variable instead of an inline literal.)
-  const options = { prepare: false, max_pipeline: 0, max: process.env.NODE_ENV === "production" ? 5 : 10 };
+  // max_pipeline:1 sends one query per connection at a time without pipelining:
+  // postgres.js otherwise pipelines extra queries onto busy connections (default 100),
+  // which hangs or mixes up results through the transaction pooler.
+  // Note: max_pipeline must be at least 1, otherwise (0) postgres.js short-circuits
+  // internal onexecute handlers and throws UNSAFE_TRANSACTION on db.transaction().
+  const options = { prepare: false, max_pipeline: 1, max: process.env.NODE_ENV === "production" ? 5 : 10 };
   return postgres(url, options);
 }
 

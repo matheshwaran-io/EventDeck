@@ -18,6 +18,6 @@ export async function GET(request: NextRequest) {
   let ok = false;
   if (tokenHash && type) ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
   else if (code) ok = !(await supabase.auth.exchangeCodeForSession(code)).error;
-  const baseUrl = process.env.VERCEL_ENV === "production" ? getAppUrl() : url.origin;
+  const baseUrl = (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") ? getAppUrl() : url.origin;
   return NextResponse.redirect(new URL(ok ? next : `/login?error=${type === "recovery" ? "recovery" : "confirmation"}`, baseUrl));
 }

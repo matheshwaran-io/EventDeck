@@ -18,8 +18,8 @@ This guide provides root-cause explanations and practical resolutions for common
 ### Issue 1.2: Pages Hang (Especially `/admin`) or Fail with `Cannot read properties of undefined (reading 'map')`
 - **Root Cause**: When a request runs more concurrent queries than the pool size, postgres.js pipelines extra queries onto busy connections by default. Through Supabase's **transaction pooler** (port 6543), pipelined queries hang or come back mixed up. The admin layout runs ten counter queries at once, so admin pages stalled for minutes and blocked later sign-ins.
 - **Resolution** (already in the code):
-  - `src/db/index.ts` creates the pool with `max_pipeline: 0` (one query per connection at a time) and `prepare: false`. Measured: with pipelining on, 91 of 200 concurrent queries timed out; with it off, 200 of 200 completed in about 1.9 s.
-  - Always import `{ db } from "@/db"` instead of creating new `postgres()` clients. If you must create one (scripts, tests), pass `max_pipeline: 0` as well.
+  - `src/db/index.ts` creates the pool with `max_pipeline: 1` (one query per connection at a time without pipelining) and `prepare: false`.
+  - Always import `{ db } from "@/db"` instead of creating new `postgres()` clients. If you must create one (scripts, tests), pass `max_pipeline: 1` as well.
   - After changing `src/db/index.ts`, restart `npm run dev`: the pool is cached on `globalThis` across hot reloads.
 
 ---

@@ -10,7 +10,7 @@ Every environment variable EventDeck reads, derived from the source (`src/`, `sc
 
 | Variable | Exposure | Required | Purpose | Where to get it |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_APP_URL` | Public | Recommended | Base URL put into sign-up confirmation and password-reset links (`src/lib/url.ts`). Use `http://localhost:3000` locally. On Vercel production the app always uses `https://eventdeck.online` regardless of this value, and a `*.vercel.app` value is ignored in production builds. | Your local URL or the production domain |
+| `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_SITE_URL` | Public | Recommended | Base URL put into sign-up confirmation and password-reset links (`src/lib/url.ts`). Use `http://localhost:3000` locally. On Vercel production the app always resolves to `https://eventdeck.online` (or custom verified domain), ignoring localhost and temporary `*.vercel.app` domains. | Your local URL or the production domain (`https://eventdeck.online`) |
 | `NEXT_PUBLIC_UNIVERSITY_NAME` | Public | Optional | Name shown in the interface. Default: `SRM University, KTR Campus`. | Free text |
 
 ## Supabase

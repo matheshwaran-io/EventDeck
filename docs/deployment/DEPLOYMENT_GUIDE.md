@@ -31,7 +31,7 @@ Set the following environment variables in **Vercel Dashboard → Settings → E
 
 | Variable | Target | Description | Example |
 | :--- | :---: | :--- | :--- |
-| `NEXT_PUBLIC_APP_URL` | Production | Canonical public URL | `https://eventdeck.online` |
+| `NEXT_PUBLIC_APP_URL` (or `NEXT_PUBLIC_SITE_URL`) | Production | Canonical public URL | `https://eventdeck.online` |
 | `NEXT_PUBLIC_UNIVERSITY_NAME` | All | Branding subtitle | `"SRM University, KTR Campus"` |
 | `NEXT_PUBLIC_SUPABASE_URL` | All | Supabase Project URL | `https://<ref>.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | All | Supabase publishable key (legacy fallback: `NEXT_PUBLIC_SUPABASE_ANON_KEY`) | `sb_publishable_...` |
