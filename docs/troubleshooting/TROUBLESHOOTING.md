@@ -16,11 +16,10 @@ This guide provides root-cause explanations and practical resolutions for common
     ```
 
 ### Issue 1.2: Pages Hang (Especially `/admin`) or Fail with `Cannot read properties of undefined (reading 'map')`
-- **Root Cause**: When a request runs more concurrent queries than the pool size, postgres.js pipelines extra queries onto busy connections by default. Through Supabase's **transaction pooler** (port 6543), pipelined queries hang or come back mixed up. The admin layout runs ten counter queries at once, so admin pages stalled for minutes and blocked later sign-ins.
-- **Resolution** (already in the code):
-  - `src/db/index.ts` creates the pool with `max_pipeline: 1` (one query per connection at a time without pipelining) and `prepare: false`.
-  - Always import `{ db } from "@/db"` instead of creating new `postgres()` clients. If you must create one (scripts, tests), pass `max_pipeline: 1` as well.
-  - After changing `src/db/index.ts`, restart `npm run dev`: the pool is cached on `globalThis` across hot reloads.
+- **Root cause (verified)**: when a request runs more concurrent queries than the pool size, postgres.js pipelines extra queries onto busy connections. Supabase's **transaction pooler** (port 6543) does not handle pipelined queries reliably: they hang or come back mixed up. The admin layout runs ten counter queries at once, so admin pages are the first to stall.
+- **Current state (open)**: `src/db/index.ts` uses `max_pipeline: 1`. That is **not** a fix for this hang: it still allows two queries per connection, and in a probe on 23 Oct 2026, 177 of 200 concurrent queries timed out through the transaction pooler. `max_pipeline: 0` stops the hang but breaks every `db.transaction()` (`UNSAFE_TRANSACTION`), so it must not be used. See the table in `docs/architecture/PROJECT_ARCHITECTURE.md` §8.
+- **Workaround that worked in testing**: point `DATABASE_URL` at the **session pooler** (port 5432, Supabase → Connect → Session pooler). Transactions and concurrency both passed there. Check the session pooler's client limit against Vercel concurrency before using it in production.
+- Always import `{ db } from "@/db"` instead of creating new `postgres()` clients, and restart `npm run dev` after changing `src/db/index.ts` or `DATABASE_URL` (the pool is cached on `globalThis`).
 
 ---
 
@@ -40,7 +39,7 @@ This guide provides root-cause explanations and practical resolutions for common
 
 ### Issue 2.1b: "Email confirmation failed or link has expired"
 - **Root Causes**: (1) the one-time token was already used or expired; (2) the default `{{ .ConfirmationURL }}` link returns `?code=…`, which can only be exchanged in the same browser that started the sign-up or reset; (3) a mail scanner opened the link first.
-- **Resolution**: Request a new e-mail. For links that work across devices, use the token-hash template form that `/auth/confirm` supports (see [WINDOWS_SETUP_AND_RUN.md §7](../WINDOWS_SETUP_AND_RUN.md#7-brevo-smtp-and-authentication-emails)). In case (2) the e-mail is already confirmed, so the user can simply sign in.
+- **Resolution**: Request a new e-mail. For links that work across devices, use the token-hash template form that `/auth/confirm` supports (see [WINDOWS_SETUP_AND_RUN.md §7](../WINDOWS_SETUP_AND_RUN.md#7-brevo-smtp-and-authentication-e-mails)). In case (2) the e-mail is already confirmed, so the user can simply sign in.
 
 ### Issue 2.1c: No Confirmation or Reset E-mail Arrives
 - **Check in order**: Supabase → Logs → Auth (SMTP errors), Supabase → Authentication → Rate Limits (e-mails per hour), Brevo → Transactional → Logs (sent, delivered, bounced), the spam folder, and Brevo domain authentication for `eventdeck.online` (DKIM, DMARC).

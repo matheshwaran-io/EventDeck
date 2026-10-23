@@ -6,10 +6,13 @@ Welcome to the EventDeck technical documentation. This directory provides compre
 
 ## Documentation Index
 
+**Start here:** [Project Maintenance Manual](PROJECT_MAINTENANCE_MANUAL.md), a single guide to the whole project: overview, stack, repository map, architecture, setup, data model, authentication, workflows, payments, tickets, e-mail, testing, deployment, troubleshooting, maintenance procedures, security checklist, current status and a quick reference.
+
 ### 1. Architecture & Design
 - **[System Architecture](architecture/PROJECT_ARCHITECTURE.md)**: High-level system design, data flows, security boundaries, status transition engine, and database schema overview.
 
 ### 2. Development Guides
+- **[Development Setup](development/DEVELOPMENT_SETUP.md)**: Concise clean-clone setup for any OS.
 - **[Contributing Guidelines](development/CONTRIBUTING.md)**: Contribution workflow, branch conventions, pull request checklist, and code review standards.
 - **[Coding Standards](development/CODING_STANDARDS.md)**: Code style, naming conventions, React 19 / Server Components best practices, error handling, and validation patterns.
 - **[Windows Setup & Run Manual](WINDOWS_SETUP_AND_RUN.md)**: Complete Windows 10/11 manual — prerequisites, installation, `.env.local`, Supabase and Brevo configuration, running, testing, troubleshooting and deployment.
@@ -22,6 +25,7 @@ Welcome to the EventDeck technical documentation. This directory provides compre
 - **[Troubleshooting Guide](troubleshooting/TROUBLESHOOTING.md)**: Root-cause diagnosis and resolutions for database pooler issues, auth redirects, Razorpay test mode, QR scanning camera permissions, and more.
 
 ### 5. Functional Testing Manuals & QA Documentation
+- **[Testing Overview](testing/TESTING.md)**: Automated suites, how to run them, coverage, current status and gaps.
 - **[Complete Functional Testing Manual](testing/TESTING_MANUAL.md)**: Master step-by-step testing manual for evaluators, testers, and reviewers.
 - **[Test Cases Matrix](testing/TEST_CASES.md)**: 84 identifiable test cases with preconditions, steps, expected outcomes, priority, and status.
 - **[Role-Based Test Account Guide](testing/TEST_ACCOUNTS.md)**: Comprehensive test account inventory, role boundaries, and safe provisioning workflows.
@@ -30,7 +34,12 @@ Welcome to the EventDeck technical documentation. This directory provides compre
 - **[QA Test Cases (Automated)](qa/QA_TEST_CASES.md)**: Core automated test cases covering authentication, bookings, payments, and check-in.
 - **[QA Bug Report](qa/QA_BUG_REPORT.md)**: Audit of identified bugs, severity levels, and resolutions.
 - **[QA Final Report](qa/QA_FINAL_REPORT.md)**: End-of-cycle testing verification report.
-- **[Final Engineering Report](reports/final-report/)**: Comprehensive project final report deliverables and source assets.
+- **[Final Engineering Report](reports/final-report/)**: Academic project report (original and revised `.docx`/`.pdf`), figures, and the generator in `working-notes/`.
+- **[Originality Audit](reports/originality/)**: Report audit, similarity issues, reference audit and similarity-check guide.
+- **[Presentation](reports/presentation/)**: 15-slide MCA project presentation.
+
+### 6. Repository Maintenance
+- **[Repository Cleanup Report](REPOSITORY_CLEANUP_REPORT.md)**: What was removed, preserved and verified on 23 Oct 2026, with open risks.
 
 ---
 

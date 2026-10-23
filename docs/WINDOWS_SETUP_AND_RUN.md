@@ -434,7 +434,7 @@ Playwright starts its own server on port 3100. `tests/env-guard.ts` stops the ru
 | `DATABASE_URL is not configured` | `.env.local` missing, misnamed (`.env.local.txt`) or in the wrong folder | `Get-ChildItem -Force -Name .env*` in the folder with `package.json` |
 | `password authentication failed for user "postgres…"` | Wrong database password, or special characters not URL-encoded | Copy the string again from Supabase → Connect; percent-encode `@ : / ? # %` |
 | `getaddrinfo ENOTFOUND db.<ref>.supabase.co` / timeouts on migrate | The direct-connection host is IPv6-only | Use the **Session pooler** string (port 5432) for `DIRECT_URL` |
-| Pages hang or fail only when many queries run (e.g. admin) | postgres.js pipelining through the transaction pooler | Already fixed in `src/db/index.ts` (`max_pipeline: 0`). Make sure your copy includes it. |
+| Pages hang or fail only when many queries run (e.g. admin) | postgres.js pipelining through the transaction pooler (open issue) | Use the **session pooler** (port 5432) for `DATABASE_URL` locally; see `docs/troubleshooting/TROUBLESHOOTING.md` §1.2. Do not set `max_pipeline: 0`: it breaks transactions. |
 | "Invalid API key" / 401 from Supabase | Publishable and secret keys swapped, or from another project | Re-copy both from the same project's API Keys page |
 | `permission denied for table …` / empty lists | Expected Row-Level Security: the browser key cannot write and sees only its own rows | Do the action through the app (server). Never disable RLS or grant write access to `anon`/`authenticated`. |
 | Poster upload or PDF download fails | `SUPABASE_SECRET_KEY` missing, or the Storage buckets weren't created | Set the key; run `npm run db:migrate` on your own project |

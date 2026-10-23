@@ -4,6 +4,8 @@ This guide covers deploying EventDeck to Vercel, configuring hosted Supabase Pos
 
 ---
 
+> **Status, 23 Oct 2026:** `npm run build` (and therefore a Vercel build) stops with `SecurityFatalError`, because `next` 16.4.0 is affected by critical advisories GHSA-2464-fhr4-w9xw and GHSA-p3m5-59mp-jv5r. Upgrade `next` and `eslint-config-next` to 16.4.2 (a patch release) before the next deployment. There is also an open connection-pooling issue; see `docs/troubleshooting/TROUBLESHOOTING.md` §1.2 before choosing the `DATABASE_URL` pooler.
+
 ## 1. Prerequisites & Services
 
 1. **Vercel Account**: For hosting the Next.js App Router application.
@@ -76,7 +78,7 @@ To ensure reliable delivery of password reset and confirmation emails:
      - Host: `smtp-relay.brevo.com`
      - Port: `587`
      - Username: Brevo SMTP login; Password: Brevo SMTP key. These stay in Supabase only, never in Vercel, `.env.local` or Git.
-   - Keep the template variables in **Authentication → Emails → Templates** intact (`{{ .ConfirmationURL }}`, or the token-hash form described in [WINDOWS_SETUP_AND_RUN.md §7](../WINDOWS_SETUP_AND_RUN.md#7-brevo-smtp-and-authentication-emails)).
+   - Keep the template variables in **Authentication → Emails → Templates** intact (`{{ .ConfirmationURL }}`, or the token-hash form described in [WINDOWS_SETUP_AND_RUN.md §7](../WINDOWS_SETUP_AND_RUN.md#7-brevo-smtp-and-authentication-e-mails)).
 3. **Redirect URLs**:
    - Under **Authentication → URL Configuration**:
      - Site URL: `https://eventdeck.online`
@@ -113,3 +115,10 @@ The job runs daily at 03:00 UTC. Vercel sends `Authorization: Bearer <CRON_SECRE
 ## 8. Post-Deployment Smoke Test
 
 Home page and search; sign-up with a real inbox (the e-mail arrives from `noreply@eventdeck.online` and the link returns to `https://eventdeck.online`); sign-in; a free booking; a paid booking with a Razorpay test card; PDF ticket download; password reset; `/admin` as an administrator.
+
+## 9. Rollback
+
+1. **Application:** Vercel → Project → Deployments → choose the last good deployment → *Promote to Production*. This is instant and does not rebuild.
+2. **Environment variables:** Vercel keeps no history of their values. Record changes before making them; after changing one, redeploy so `NEXT_PUBLIC_*` values are compiled in.
+3. **Database:** Vercel rollbacks do not touch the database. Keep migrations backward-compatible: add columns before code uses them, and remove them only after no deployed code reads them. To undo a schema change, write a new migration. Never edit or delete an applied one. Before risky migrations, take a backup (Supabase backups, or `pg_dump` against `DIRECT_URL`) and store it **outside** the repository.
+4. **Payments:** Razorpay Test Mode state cannot be rolled back. Reconcile with Admin → Exceptions and Refunds.

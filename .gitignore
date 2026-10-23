@@ -22,9 +22,24 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+*.key
+
+# local database dumps / backups (may contain personal data, never commit)
 *_backup.sql
 *.sql.bak
+*.dump
+/scripts/backups/
+
+# editor / office temp files
+*.swp
+*~
+~$*
+.idea/
+
+# report generator intermediates (rebuild with docs/reports/final-report/working-notes/build_report.py)
+*.generated.docx
 
 # debug / local logs
 *.log
@@ -33,8 +48,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files: real values stay local; only the templates are committed
 .env*
+!.env.example
+!.env.test.example
 
 # vercel
 .vercel
@@ -42,7 +59,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-!.env.example
 
 # playwright
 /test-results/
@@ -53,4 +69,3 @@ next-env.d.ts
 /.next-e2e/
 /.next-*/
 /e2e/.fake-camera/
-!.env.test.example

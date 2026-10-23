@@ -58,6 +58,27 @@ EventDeck is a university-scale event management and ticketing platform designed
 
 ---
 
+### 3.1 Request flow (Mermaid)
+
+```mermaid
+flowchart LR
+  B["Browser / phone"] -->|cookies| P["src/proxy.ts"]
+  P --> PG["Pages (Server Components)<br/>requirePageUser"]
+  P --> SA["Server Actions<br/>requireUser + Zod"]
+  P --> API["Route handlers<br/>/api/checkin · payments · webhooks · tickets · reports · cron"]
+  PG & SA & API --> SVC["src/lib/server/*<br/>ownership checks, transactions"]
+  SVC --> DOM["src/lib/domain/*"]
+  SVC --> DB[("Supabase PostgreSQL<br/>RLS · constraints")]
+  SVC --> ST[("Storage: posters · tickets")]
+  SVC <--> RZ["Razorpay Test Mode"]
+  RZ -->|signed webhook| API
+  DB -.->|Realtime: bookings, notifications| B
+```
+
+There is one Next.js application. It has no separate backend service, queue or worker; the only scheduled job is Vercel Cron calling `/api/cron/expire-holds` daily.
+
+---
+
 ## 4. Security & Access Control Model
 
 ### 4.1. Defense in Depth
@@ -134,10 +155,20 @@ A ticket is valid only when the booking is `approved`, payment is `paid` or `not
 
 ## 8. Database Connections
 
-- `src/db/index.ts` creates one postgres.js pool (`max` 10 in development, 5 in production) over `DATABASE_URL`, which is Supabase's **transaction pooler** (port 6543). It uses `prepare: false` (no named prepared statements through the pooler) and **`max_pipeline: 0`**.
-- `max_pipeline: 0` matters. By default postgres.js pipelines extra queries onto busy connections once a request runs more concurrent queries than `max`. Through the transaction pooler, those pipelined queries hung or returned mismatched results: the admin pages, which run ten counters at once in the layout, stalled for minutes. With pipelining off, 200 of 200 concurrent test queries completed in about 1.9 s (versus 91 of 200 timing out), and every admin page loads in about 1.2–2.1 s.
+- `src/db/index.ts` creates one postgres.js pool (`max` 10 in development, 5 in production) over `DATABASE_URL`, with `prepare: false` (no named prepared statements, required by Supabase's transaction pooler) and `max_pipeline: 1`.
+- Migrations use `DIRECT_URL` (Supabase **session pooler**, port 5432) through `drizzle.config.ts`.
 - `adminMetrics()` is wrapped in React `cache()`, so the admin layout and overview page share one set of counter queries per request.
-- Migrations use `DIRECT_URL`, Supabase's **session pooler** (port 5432), through `drizzle.config.ts`.
+
+**Known issue: pipelining and the transaction pooler (open, measured 23 Oct 2026).** postgres.js pipelines extra queries onto busy connections when a request runs more concurrent queries than `max`, and the admin layout runs ten counters at once. A direct probe (`max` 10, 5 rounds of 40 concurrent queries, plus one `sql.begin` transaction) gave:
+
+| `DATABASE_URL` points at | `max_pipeline` | Transaction | Concurrent queries |
+| --- | --- | --- | --- |
+| Transaction pooler (6543) | 0 | **fails** (`UNSAFE_TRANSACTION`) | 200/200 OK |
+| Transaction pooler (6543) | 1 (current code) | OK | **177/200 timed out** |
+| Session pooler (5432) | 1 | OK | 200/200 OK (≈3.2 s) |
+| Session pooler (5432) | 100 (library default) | OK | 200/200 OK (≈2.1 s) |
+
+So `max_pipeline: 0` (used briefly on 15 Oct 2026) breaks every `db.transaction()`, including booking creation. `max_pipeline: 1` keeps transactions working but still lets two queries share a connection, which the transaction pooler does not handle. Pages that run many parallel queries, the admin pages above all, can therefore hang again on the transaction pooler. Pointing `DATABASE_URL` at the session pooler removed the problem in the probe. Its trade-off is that each client connection holds a server connection, so on Vercel the number of function instances × `max` must stay below the session pooler's client limit. The decision is recorded as an open item in `docs/PROJECT_MAINTENANCE_MANUAL.md` §18.
 
 ---
 
