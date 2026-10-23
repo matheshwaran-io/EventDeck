@@ -76,6 +76,10 @@ Vercel, with the production domain `https://eventdeck.online`. `vercel.json` sch
 
 [docs/README.md](docs/README.md) indexes everything: architecture, development, deployment, troubleshooting, testing and QA, the academic report and presentation, and the repository cleanup report.
 
+## Author
+
+Designed and developed by [@matheshwaran-io](https://github.com/matheshwaran-io) as an MCA project.
+
 ## License
 
 No license has been chosen yet. Until one is added, the code is not licensed for reuse by others.
