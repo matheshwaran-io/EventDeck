@@ -56,7 +56,7 @@ All defects below were reproduced before fixing (failing test or direct evidence
 
 ## QA-008 · P3 · Lint scanned generated E2E build output — **FIXED**
 
-* `.next-e2e/**` (and `.claude/**`, reports) added to ESLint ignores.
+* `.next-e2e/**` (and local tooling folders, reports) added to ESLint ignores.
 
 ---
 

@@ -86,11 +86,9 @@ EventDeck/
 ├── e2e/                         # Playwright specs, global setup/teardown, helpers
 ├── public/brand/                # brand kit (logos, icons); not referenced by app code (app icon is src/app/icon.svg)
 ├── docs/                        # all documentation (this file); docs/reports = academic report + presentation
-├── .claude/                     # Claude Code project settings and an installed "understand" skill (tooling, not app)
 ├── .env.example, .env.test.example
 ├── next.config.ts, drizzle.config.ts, vitest.config.mts, playwright.config.ts, eslint.config.mjs, tsconfig.json
 ├── vercel.json                  # daily cron → /api/cron/expire-holds
-├── AGENTS.md                    # written by `next dev`; keep committed
 └── package.json, package-lock.json
 ```
 

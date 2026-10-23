@@ -4,7 +4,7 @@ Repository `Eventdeck88/EventDeck`, branch `main`, starting point commit `00bb5b
 
 ## 1. Original structure (summary)
 
-404 tracked files: `src/` 168, `docs/` 93, `.claude/` 56, `tests/` 17, `drizzle/` 17, `e2e/` 14, `public/` 12, `scripts/` 11, plus root configuration. `.git` is about 57 MB, mostly report binaries (each report `.docx` is about 8 MB). The structure already follows Next.js App Router conventions and was kept: no source, migration, configuration or asset directories were moved.
+404 tracked files: `src/` 168, `docs/` 93, local tooling 56, `tests/` 17, `drizzle/` 17, `e2e/` 14, `public/` 12, `scripts/` 11, plus root configuration. `.git` is about 57 MB, mostly report binaries (each report `.docx` is about 8 MB). The structure already follows Next.js App Router conventions and was kept: no source, migration, configuration or asset directories were moved.
 
 ## 2. Files removed
 
@@ -15,7 +15,7 @@ Repository `Eventdeck88/EventDeck`, branch `main`, starting point commit `00bb5b
 | `docs/reports/final-report/working-notes/EventDeck_Project_Report_Revised.generated.docx` | B, regenerable output | As above, for the revised report (`EventDeck_Project_Report_Revised.docx` kept). `SIMILARITY_CHECK_GUIDE.md` uses this path only as the rebuild *output*. |
 | `docs/development/WINDOWS_SETUP_AND_RUN.md` | B, outdated doc with replacement | 3-line redirect stub to `docs/WINDOWS_SETUP_AND_RUN.md`; no file linked to it. |
 
-Total: 4 files, about 16 MB from the working tree (the history still holds them).
+Total: 4 files, about 16 MB from the working tree (the history still holds them). Local editor and tooling configuration (58 files) was later untracked at the owner's request; it stays on the owner's machine only.
 
 ## 3. Files changed
 
@@ -39,7 +39,6 @@ Not created because an equivalent already exists (improved instead): an architec
 ## 5. Deliberately preserved
 
 - All source (`src/`), migrations `drizzle/0000`–`0008` with `meta/`, tests, e2e, scripts, `package.json`, `package-lock.json`, configs, `vercel.json`, `.env.example`, `.env.test.example`.
-- `AGENTS.md`: written by `next dev`; deleting it only makes `next dev` recreate it.
 - Academic deliverables: original and revised reports (`.docx` + `.pdf`), presentation, figures and their SVG/Python sources, report generator, test logs cited by the report, originality audit.
 - `docs/testing/EVENTDECK_TEST_CREDENTIALS_AND_PAYMENTS.pdf`: checked; it contains no passwords (it names the `SEED_DEMO_PASSWORD` variable) and only Razorpay's published test card numbers.
 
@@ -47,7 +46,6 @@ Not created because an equivalent already exists (improved instead): an architec
 
 | Item | Why it was not removed |
 | --- | --- |
-| `.claude/` (56 files) and `skills-lock.json` | Claude Code project settings (`.claude/launch.json` defines the dev-server preview) and an installed third-party "understand" skill (55 files). This is tooling, not application code; for a public repository you may prefer to delete or ignore `.claude/skills/` and `skills-lock.json`. |
 | `public/brand/` (12 files) | Brand kit (logos, icons, brand sheet). **Not referenced by application code** (the app icon is `src/app/icon.svg`) but used for the presentation and as brand assets. |
 | Dependencies `date-fns`, `next-themes` | No references anywhere in `src/`, `scripts/` or config, so they are likely unused. Not removed, because that would rewrite `package-lock.json`; remove them in a dependency PR (`npm uninstall date-fns next-themes`, then `npm run verify` and `npm run build`). |
 | `docs/reports/final-report/working-notes/{unit,lint,tsc}.txt` | Older test logs, but cited as evidence in the original report. |
@@ -83,6 +81,6 @@ The cleanup itself changed no application code, so it cannot have changed applic
 2. Resolve the pooling issue (session pooler for `DATABASE_URL`, or reduce per-request query concurrency) and correct the academic report's OBS-1 wording accordingly.
 3. Create the Supabase test project and re-run the integration and E2E suites.
 4. Move `scripts/backups/` dumps out of the repository folder.
-5. Decide on `.claude/skills/` and `skills-lock.json` for a public repository, and on the unused dependencies.
+5. Decide on the unused dependencies.
 6. Choose a license before making the repository public.
 7. Consider moving large binaries (report `.docx`/`.pdf`/`.pptx`) to GitHub Releases or Git LFS in future; history already contains them, so this only helps new additions.
