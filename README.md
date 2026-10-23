@@ -78,7 +78,7 @@ Vercel, with the production domain `https://eventdeck.online`. `vercel.json` sch
 
 ## Author
 
-Designed and developed by [@matheshwaran-io](https://github.com/matheshwaran-io) as an MCA project.
+Designed and developed by **Matheshwaran R** ([@matheshwaran-io](https://github.com/matheshwaran-io)) as an MCA project.
 
 ## License
 
